@@ -86,7 +86,6 @@ bool canvas::event(QEvent* e)
 }
 void canvas::prime_stroke(const QPointF& at)
 {
-    active_stroke_.start = at;
 
     const auto dpr = devicePixelRatioF();
     active_stroke_.img =
@@ -99,45 +98,26 @@ constexpr auto diff(T lhs, T rhs) -> T
 {
     return lhs > rhs ? lhs - rhs : rhs - lhs;
 }
+
+void canvas::stroke::update_bounds(const QPointF& at)
+{
+    auto& b = bounds;
+
+    b.setTopLeft(QPointF{std::min(at.x(), b.topLeft().x()),
+                         std::min(at.y(), b.topLeft().y())});
+    b.setBottomRight(QPointF{std::max(at.x(), b.bottomRight().x()),
+                             std::max(at.y(), b.bottomRight().y())});
+}
 void canvas::finish_stroke(const QPointF& at)
 {
-    active_stroke_.end = at;
-    QPixmap optmised{
-        qRound(diff(active_stroke_.start.x(), active_stroke_.end.x())),
-        qRound(diff(active_stroke_.start.y(), active_stroke_.end.y())),
-    };
-    fill_with_transparent(optmised);
-    QPainter p{&optmised};
-    p.drawPixmap(0, 0, active_stroke_.img);
-    p.end();
-    // active_stroke_.img = optmised;
-
-    const QPointF top_left{
-        std::min(active_stroke_.start.x(), active_stroke_.end.x()),
-        std::min(active_stroke_.start.y(), active_stroke_.end.y())};
-    const QPointF bottom_right{
-        std::max(active_stroke_.start.x(), active_stroke_.end.x()),
-        std::max(active_stroke_.start.y(), active_stroke_.end.y())};
-
-    active_stroke_.bounds = QRectF{top_left, bottom_right};
+    active_stroke_.update_bounds(at);
 
     strokes_.emplace_back(std::move(active_stroke_));
     active_stroke_ = {};
 }
-
 void canvas::add_stroke(const QPointF& at)
 {
     auto max_pen_radius = 20;
-    const QPointF top_left{std::min(at.x(), last_pt.x()),
-                           std::min(at.y(), last_pt.y())};
-    const QPointF bottom_right{std::max(at.x(), last_pt.x()),
-                               std::max(at.y(), last_pt.y())};
-    const QRectF draw_size{top_left, bottom_right};
-    if (!draw_size.isValid()) {
-        logger_->debug("invalid pt: [{}, {}] vs [{}, {}]", at.x(), at.y(),
-                       last_pt.x(), last_pt.y());
-        return;
-    }
 
     const auto dpr = devicePixelRatioF();
     assert(!active_stroke_.img.isNull());
@@ -145,6 +125,8 @@ void canvas::add_stroke(const QPointF& at)
     with.setPen(curr_pen_);
     with.drawLine(last_pt, at);
     with.end();
+
+    active_stroke_.update_bounds(at);
 
     /*update(QRect{last_pt.toPoint(), at.toPoint()}.normalized().adjusted(
         -max_pen_radius, -max_pen_radius, max_pen_radius, max_pen_radius));*/

@@ -29,9 +29,9 @@ namespace sketchy::ui {
 class canvas : public QWidget {
     struct stroke {
         QPixmap img;
-        QPointF start;
-        QPointF end;
         QRectF bounds;
+
+        void update_bounds(const QPointF& at);
     };
 
 public:
