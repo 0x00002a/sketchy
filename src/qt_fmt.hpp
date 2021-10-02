@@ -18,7 +18,6 @@
 #pragma once
 
 #include <fmt/format.h>
-#include <qpoint.h>
 
 #include <concepts>
 
@@ -29,10 +28,26 @@ concept point = requires(const T& pt)
     {pt.x()};
     {pt.y()};
 };
+template<typename T>
+concept rect = requires(const T& pt)
+{
+    {
+        pt.topLeft()
+        } -> point;
+    {
+        pt.bottomRight()
+        } -> point;
+    {pt.width()};
+    {pt.height()};
+};
+
+template<typename T>
+constexpr bool is_rect_t = sketchy::detail::rect<T>;
 } // namespace sketchy::detail
 
-template<sketchy::detail::point P>
-struct fmt::formatter<P> {
+template<typename P>
+requires(sketchy::detail::point<P> ||
+         sketchy::detail::rect<P>) struct fmt::formatter<P> {
     constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
     {
         return ctx.end();
@@ -40,7 +55,14 @@ struct fmt::formatter<P> {
     template<typename FormatContext>
     auto format(const P& p, FormatContext& ctx) -> decltype(ctx.out())
     {
-        // ctx.out() is an output iterator to write to.
-        return format_to(ctx.out(), "{}, {}", p.x(), p.y());
+        if constexpr (sketchy::detail::rect<P>) {
+            return format_to(ctx.out(), "tl: {}, br: {}, w: {}, h: {}",
+                             p.topLeft(), p.bottomRight(), p.width(),
+                             p.height());
+        }
+        else if constexpr (sketchy::detail::point<P>) {
+            // ctx.out() is an output iterator to write to.
+            return format_to(ctx.out(), "{}, {}", p.x(), p.y());
+        }
     }
 };

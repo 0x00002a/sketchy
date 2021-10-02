@@ -39,6 +39,15 @@ set(LIB_NAME libsketchy)
 
 add_library(${LIB_NAME} ${SRC})
 
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "(GNU|AppleClang|Clang)")
+    target_compile_options(
+        ${LIB_NAME}
+        PUBLIC
+            -fdiagnostics-color=always
+    )
+endif()
+
+
 
 find_package(spdlog REQUIRED)
 

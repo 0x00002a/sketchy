@@ -64,7 +64,7 @@ void canvas::paintEvent(QPaintEvent* e)
     std::size_t i{0};
     std::for_each(strokes_.begin(), strokes_.end(),
                   [&, this](const stroke& s) mutable {
-                      logger_->trace("draw at: [{}]", s.bounds.topLeft());
+                      logger_->trace("draw at: [{}]", s.bounds);
 
                       p.drawPixmap(s.bounds.topLeft() - move_offset_,
                                    raster_strokes_.at(i));
