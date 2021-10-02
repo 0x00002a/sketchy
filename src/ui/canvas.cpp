@@ -28,6 +28,7 @@
 #include <qgraphicsscene.h>
 #include <qgraphicsview.h>
 #include <qnamespace.h>
+#include <qscrollbar.h>
 
 #include <qpixmap.h>
 #include <spdlog/spdlog.h>
@@ -103,15 +104,17 @@ void canvas::handle_pen_move(const QPointF& at)
             break;
         case mode::move:
             const auto diff = last_pt - at;
-            move_offset_ += diff;
-            if (move_offset_.x() < 0) {
-                move_offset_.setX(0);
-            }
-            if (move_offset_.y() < 0) {
-                move_offset_.setY(0);
-            }
             logger_->trace("move: [{}]", diff);
-            update();
+            QRectF new_size{scene_.sceneRect().topLeft(),
+                            scene_.sceneRect().size() +
+                                QSizeF{diff.x(), diff.y()}};
+            if (!scene_.sceneRect().contains(new_size)) {
+                scene_.setSceneRect(new_size);
+            }
+            viewport_->verticalScrollBar()->setValue(
+                viewport_->verticalScrollBar()->value() + diff.y());
+            viewport_->horizontalScrollBar()->setValue(
+                viewport_->horizontalScrollBar()->value() + diff.x());
             break;
         }
 
@@ -124,13 +127,21 @@ void canvas_view::mouseReleaseEvent(QMouseEvent* e)
 }
 void canvas_view::mouseMoveEvent(QMouseEvent* e)
 {
-
-    QApplication::sendEvent(scene(), e);
+    if (dragMode() == DragMode::ScrollHandDrag) {
+        QGraphicsView::mouseMoveEvent(e);
+    }
+    else {
+        QApplication::sendEvent(scene(), e);
+    }
 }
 void canvas_view::mousePressEvent(QMouseEvent* e)
 {
-
-    QApplication::sendEvent(scene(), e);
+    if (dragMode() == DragMode::ScrollHandDrag) {
+        QGraphicsView::mousePressEvent(e);
+    }
+    else {
+        QApplication::sendEvent(scene(), e);
+    }
 }
 
 bool canvas_scene::event(QEvent* e)

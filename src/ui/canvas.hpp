@@ -98,12 +98,10 @@ private:
     void handle_pen_move(const QPointF& at);
 
     mode curr_mode_{mode::draw};
-    float zoom_{1};
     logger_t logger_;
     QPointF last_pt;
     QPen curr_pen_;
     bool pen_down_{false};
-    QPointF move_offset_;
     canvas_scene scene_;
     canvas_view* viewport_;
     float curr_weight_{0};
