@@ -62,26 +62,14 @@ void canvas::paintEvent(QPaintEvent* e)
     p.fillRect(bounds, Qt::white);
 
     std::size_t i{0};
-    std::for_each(
-        strokes_.begin(), strokes_.end(), [&, this](const stroke& s) mutable {
-            if (aval.contains(s.bounds.topLeft()) ||
-                aval.contains(s.bounds.bottomRight())) {
-                logger_->trace("draw at: [{}]", s.bounds.topLeft());
+    std::for_each(strokes_.begin(), strokes_.end(),
+                  [&, this](const stroke& s) mutable {
+                      logger_->trace("draw at: [{}]", s.bounds.topLeft());
 
-                p.drawPixmap(s.bounds.topLeft() - move_offset_,
-                             raster_strokes_.at(i));
-            }
-            else {
-                logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, "
-                               "{}]",
-                               s.bounds.topLeft().x(), s.bounds.topLeft().y(),
-                               s.bounds.bottomRight().x(),
-                               s.bounds.bottomRight().x(), aval.topLeft().x(),
-                               aval.topLeft().y(), aval.bottomRight().x(),
-                               aval.bottomRight().y());
-            }
-            ++i;
-        });
+                      p.drawPixmap(s.bounds.topLeft() - move_offset_,
+                                   raster_strokes_.at(i));
+                      ++i;
+                  });
     if (pen_down_) {
         p.translate(-move_offset_);
         active_stroke_.paint(p);
@@ -198,11 +186,6 @@ void canvas::add_stroke(const QPointF& at)
     auto max_pen_radius = 20;
 
     const auto dpr = devicePixelRatioF();
-    /*QPainter with{&active_stroke_.img};
-    with.setPen(curr_pen_);
-    with.drawLine(last_pt - move_offset_, at - move_offset_);
-    with.end();*/
-
     active_stroke_.update_bounds(at);
     active_stroke_.append({
         .start = last_pt,
@@ -213,7 +196,7 @@ void canvas::add_stroke(const QPointF& at)
 
     /*update(QRect{last_pt.toPoint(), at.toPoint()}.normalized().adjusted(
         -max_pen_radius, -max_pen_radius, max_pen_radius, max_pen_radius));*/
-    update();
+    update(active_stroke_.bounds.toRect().normalized());
 }
 
 } // namespace sketchy::ui
