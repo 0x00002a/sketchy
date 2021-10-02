@@ -71,7 +71,7 @@ void stroke::update_bounds(const QPointF& at)
 void stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
                    QWidget* w)
 {
-    to->save();
+    // to->save();
     /*std::for_each(parts_.begin(), parts_.end(), [&, this](const line& part) {
         QPen p;
         p.setColor(part.colour);

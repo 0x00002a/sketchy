@@ -20,6 +20,7 @@
 
 #include <QMouseEvent>
 
+#include <fmt/core.h>
 #include <iterator>
 #include <qapplication.h>
 #include <qboxlayout.h>
@@ -61,12 +62,7 @@ canvas::canvas(logger_t logger)
     connect(&scene_, &canvas_scene::on_pointer_event, this,
             &canvas::on_canvas_event);
     viewport_->setMouseTracking(true);
-}
-
-void canvas::paintEvent(QPaintEvent* e)
-{
-    QWidget::paintEvent(e);
-    return;
+    viewport_->setTabletTracking(true);
 }
 
 void canvas::set_strokes(const std::vector<stroke>& s)
@@ -125,7 +121,7 @@ void canvas::handle_pen_move(const QPointF& at)
             if (move_offset_.y() < 0) {
                 move_offset_.setY(0);
             }
-            logger_->debug("move: [{}]", diff);
+            logger_->trace("move: [{}]", diff);
             update();
             break;
         }
@@ -171,7 +167,7 @@ bool canvas_view::event(QEvent* e)
 void canvas::on_canvas_event(QPointerEvent* pe)
 {
     for (const auto& pt : pe->points()) {
-        const auto pos = pt.position() + move_offset_;
+        const auto pos = viewport_->mapToScene(pt.position().toPoint());
         if (pen_down_) {
             curr_weight_ = pt.pressure();
             logger_->debug("recorded pressure: {}", curr_weight_);
@@ -195,7 +191,7 @@ void canvas::prime_stroke(const QPointF& at)
 {
     assert(!active_stroke_);
     active_stroke_ = new stroke;
-    active_stroke_->offset = move_offset_;
+    // active_stroke_->offset = move_offset_;
     scene_.addItem(active_stroke_);
 }
 template<typename T>
@@ -216,23 +212,16 @@ void canvas::add_stroke(const QPointF& at)
 {
     assert(active_stroke_);
     const auto dpr = devicePixelRatioF();
-    /*active_stroke_.update_bounds(at);
-    active_stroke_.append({
-        .start = last_pt,
-        .end = at,
-        .weight = curr_weight_,
-        .colour = Qt::black,
-    });*/
+    active_stroke_->update_bounds(at);
+
     active_stroke_->append(new stroke::line{
         last_pt,
         at,
         curr_weight_,
         Qt::black,
     });
-    // scene_.addLine(QLineF{last_pt, at}, curr_pen_);
     logger_->trace("add line: [{}] -> [{}]", last_pt, at);
-
-    // update(active_stroke_.bounds.toRect().normalized());
+    scene_.update(active_stroke_->boundingRect());
 }
 
 } // namespace sketchy::ui

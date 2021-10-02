@@ -73,8 +73,6 @@ private slots:
     void on_canvas_event(QPointerEvent* e);
 
 protected:
-    void paintEvent(QPaintEvent* e) override;
-
 private:
     void add_stroke(const QPointF& at);
     void prime_stroke(const QPointF& at);
