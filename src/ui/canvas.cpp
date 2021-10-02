@@ -30,17 +30,85 @@ void canvas::paintEvent(QPaintEvent* e)
     const auto aval = e->region();
     QPainter p{this};
     p.fillRect(aval.boundingRect(), Qt::white);
+
     std::for_each(strokes_.begin(), strokes_.end(), [&](const auto& s) {
         if (aval.contains(s.bounds.toRect())) {
             p.drawPixmap(s.bounds.toRect(), s.img);
         }
     });
+    if (!active_stroke_.img.isNull()) {
+        p.drawPixmap(0, 0, active_stroke_.img);
+    }
 }
 
-void canvas::mouseMoveEvent(QMouseEvent* e)
+bool canvas::event(QEvent* e)
 {
-    add_stroke(e->posF());
-    last_pt = e->posF();
+    if (e->isPointerEvent()) {
+        auto* pe = static_cast<QPointerEvent*>(e);
+        for (const auto& pt : pe->points()) {
+            switch (pt.state()) {
+            case QEventPoint::State::Pressed:
+                prime_stroke(pt.position());
+                last_pt = pt.position();
+                pen_down_ = true;
+                break;
+            case QEventPoint::State::Released:
+                if (pen_down_) {
+                    finish_stroke(pt.position());
+                }
+                pen_down_ = false;
+            case QEventPoint::State::Updated:
+                if (pen_down_) {
+                    add_stroke(pt.position());
+                    last_pt = pt.position();
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        return true;
+    }
+    else {
+        return QWidget::event(e);
+    }
+}
+void canvas::prime_stroke(const QPointF& at)
+{
+    active_stroke_.start = at;
+
+    const auto dpr = devicePixelRatioF();
+    active_stroke_.img =
+        QPixmap{qRound(rect().width() * dpr), qRound(rect().height() * dpr)};
+    active_stroke_.img.fill(Qt::white);
+}
+template<typename T>
+constexpr auto diff(T lhs, T rhs) -> T
+{
+    return lhs > rhs ? lhs - rhs : rhs - lhs;
+}
+void canvas::finish_stroke(const QPointF& at)
+{
+    active_stroke_.end = at;
+    QPixmap optmised{
+        qRound(diff(active_stroke_.start.x(), active_stroke_.end.x())),
+        qRound(diff(active_stroke_.start.y(), active_stroke_.end.y())),
+    };
+    QPainter p{&optmised};
+    p.drawPixmap(0, 0, active_stroke_.img);
+    active_stroke_.img = optmised;
+
+    const QPointF top_left{
+        std::min(active_stroke_.start.x(), active_stroke_.end.x()),
+        std::min(active_stroke_.start.y(), active_stroke_.end.y())};
+    const QPointF bottom_right{
+        std::max(active_stroke_.start.x(), active_stroke_.end.x()),
+        std::max(active_stroke_.start.y(), active_stroke_.end.y())};
+
+    active_stroke_.bounds = QRectF{top_left, bottom_right};
+
+    strokes_.emplace_back(std::move(active_stroke_));
+    active_stroke_ = {};
 }
 
 void canvas::add_stroke(const QPointF& at)
@@ -58,18 +126,11 @@ void canvas::add_stroke(const QPointF& at)
     }
 
     const auto dpr = devicePixelRatioF();
-    stroke s{QPixmap{qRound(draw_size.width() * dpr),
-                     qRound(draw_size.height() * dpr)},
-             draw_size};
-    s.img.setDevicePixelRatio(dpr);
-    s.img.fill(Qt::white);
-    assert(!s.img.isNull());
-    QPainter with{&s.img};
+    assert(!active_stroke_.img.isNull());
+    QPainter with{&active_stroke_.img};
     with.setPen(curr_pen_);
     with.drawLine(last_pt, at);
     with.end();
-
-    strokes_.emplace_back(std::move(s));
 
     /*update(QRect{last_pt.toPoint(), at.toPoint()}.normalized().adjusted(
         -max_pen_radius, -max_pen_radius, max_pen_radius, max_pen_radius));*/

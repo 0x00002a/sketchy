@@ -27,6 +27,8 @@ namespace sketchy::ui {
 class canvas : public QWidget {
     struct stroke {
         QPixmap img;
+        QPointF start;
+        QPointF end;
         QRectF bounds;
     };
 
@@ -34,13 +36,17 @@ public:
     canvas();
 
 protected:
-    void mouseMoveEvent(QMouseEvent* e) override;
+    bool event(QEvent* e) override;
     void paintEvent(QPaintEvent* e) override;
 
 private:
     void add_stroke(const QPointF& at);
+    void prime_stroke(const QPointF& at);
+    void finish_stroke(const QPointF& at);
     QPointF last_pt;
     QPen curr_pen_;
+    bool pen_down_{false};
+    stroke active_stroke_;
     std::vector<stroke> strokes_;
 };
 } // namespace sketchy::ui
