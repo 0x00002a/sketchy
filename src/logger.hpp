@@ -15,29 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "main_window.hpp"
-#include "canvas.hpp"
-#include "infinite_scroll.hpp"
+#include <spdlog/logger.h>
 
-#include <QHBoxLayout>
-#include <qscrollarea.h>
-#include <qstackedwidget.h>
 
-#include <spdlog/spdlog.h>
+namespace sketchy {
 
-namespace sketchy::ui {
-main_window::main_window()
-    : center_container_{new QStackedWidget}, canvas_{new canvas{spdlog::default_logger()}}
-{
-    auto* w = new QWidget;
-    auto* layout = new QHBoxLayout{w};
-    layout->addWidget(center_container_);
-    setCentralWidget(w);
+using logger_t = std::shared_ptr<spdlog::logger>;
 
-    auto* sa = new infinite_scroller;
-    sa->widget(canvas_);
-
-    center_container_->addWidget(sa);
-    center_container_->setCurrentWidget(sa);
 }
-} // namespace sketchy::ui
+
