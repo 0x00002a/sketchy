@@ -46,7 +46,6 @@ main_window::main_window()
     center_container_->addWidget(canvas_);
     center_container_->setCurrentWidget(canvas_);
 
-    auto* mbar = menuBar()->addMenu("tools");
     auto* tbar = addToolBar(tr("tools"));
 
     auto* move_act = new QAction{tr("Move"), this};
@@ -60,8 +59,6 @@ main_window::main_window()
             &main_window::switch_to_draw_mode);
     tbar->addAction(move_act);
     tbar->addAction(draw_act);
-    mbar->addAction(move_act);
-    mbar->addAction(draw_act);
 
     auto* save_act = new QAction{tr("Save"), this};
     save_act->setShortcut(QKeySequence::Save);
