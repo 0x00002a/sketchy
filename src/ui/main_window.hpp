@@ -33,8 +33,10 @@ private slots:
     void switch_to_draw_mode();
     void switch_to_move_mode();
     void on_save_as(const QString&);
+    void on_save_as_clicked();
     void on_save();
     void on_load_from(const QString&);
+    void on_load_from_clicked();
 
 private:
     QStackedWidget* center_container_;
