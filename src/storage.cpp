@@ -16,8 +16,44 @@
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "storage.hpp"
+#include "cronch/deserialize.hpp"
+#include "cronch/metadata.hpp"
+#include "cronch/serialize.hpp"
 
 #include <qpainter.h>
+
+#include <cronch/json/boost.hpp>
+#include <cronch/meta.hpp>
+
+using namespace sketchy::detail;
+namespace cm = cronch::meta;
+
+CRONCH_META_TYPE(QPointF, (cm::property("x", &QPointF::x, &QPointF::setX),
+                           cm::property("y", &QPointF::y, &QPointF::setY)));
+CRONCH_META_TYPE(QRectF,
+                 (cm::property("tl", &QRectF::topLeft, &QRectF::setTopLeft),
+                  cm::property("br", &QRectF::bottomRight,
+                               &QRectF::setBottomRight)));
+
+template<>
+struct cronch::json::boost::converter<QColor> {
+    static void to_json(::boost::json::value& v, const QColor& c)
+    {
+        v = ::boost::json::string(c.name().toStdString().c_str());
+    }
+    static void from_json(const ::boost::json::value& v, QColor& c)
+    {
+        c = QColor{v.as_string().c_str()};
+    }
+};
+CRONCH_META_TYPE(stroke::line, (cm::field("s", &stroke::line::start),
+                                cm::field("e", &stroke::line::end),
+                                cm::field("w", &stroke::line::weight),
+                                cm::field("c", &stroke::line::colour)));
+CRONCH_META_TYPE(stroke,
+                 (cm::field("off", &stroke::offset),
+                  cm::field("boun", &stroke::bounds),
+                  cm::property("pts", &stroke::parts, &stroke::set_parts)));
 
 namespace sketchy {
 namespace detail {
@@ -34,7 +70,7 @@ void stroke::update_bounds(const QPointF& at)
 void stroke::paint(QPainter& to, bool use_cache) const
 {
     to.save();
-    std::for_each(parts.begin(), parts.end(), [&, this](const line& part) {
+    std::for_each(parts_.begin(), parts_.end(), [&, this](const line& part) {
         QPen p;
         p.setColor(part.colour);
         p.setWidthF(part.weight);
@@ -46,9 +82,14 @@ void stroke::paint(QPainter& to, bool use_cache) const
 void stroke::append(const line& l)
 {
     img_updated_ = true;
-    parts.emplace_back(l);
+    parts_.emplace_back(l);
 }
 
 } // namespace detail
+
+auto to_json(const std::vector<detail::stroke>& obj) -> std::string
+{
+    return cronch::serialize<cronch::json::boost>(obj);
+}
 
 } // namespace sketchy

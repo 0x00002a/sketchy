@@ -17,7 +17,7 @@
 
 #include "main_window.hpp"
 #include "canvas.hpp"
-#include "infinite_scroll.hpp"
+#include "storage.hpp"
 
 #include <QHBoxLayout>
 #include <qkeysequence.h>
@@ -31,7 +31,8 @@
 
 namespace sketchy::ui {
 main_window::main_window()
-    : center_container_{new QStackedWidget}, canvas_{new canvas{spdlog::default_logger()}}
+    : center_container_{new QStackedWidget},
+      canvas_{new canvas{spdlog::default_logger()}}
 {
     auto* w = new QWidget;
     auto* layout = new QHBoxLayout{w};
@@ -43,6 +44,7 @@ main_window::main_window()
 
     auto* mbar = menuBar()->addMenu("tools");
     auto* tbar = addToolBar(tr("tools"));
+
     auto* move_act = new QAction{tr("move"), this};
     auto* draw_act = new QAction{tr("draw"), this};
 
@@ -56,13 +58,19 @@ main_window::main_window()
     tbar->addAction(draw_act);
     mbar->addAction(move_act);
     mbar->addAction(draw_act);
+
+    auto* save_act = new QAction{tr("save"), this};
+    save_act->setShortcut(QKeySequence::Save);
+    connect(save_act, &QAction::triggered, this, &main_window::on_save);
+    auto* mfile = menuBar()->addMenu("&File");
+    mfile->addAction(save_act);
 }
-    void main_window::on_save_as(const QString&) {
-
-    }
-    void main_window::on_save() {}
-    void main_window::on_load_from(const QString&) {}
-
+void main_window::on_save_as(const QString&) {}
+void main_window::on_save()
+{
+    spdlog::info("json: {}", to_json(canvas_->strokes()));
+}
+void main_window::on_load_from(const QString&) {}
 
 void main_window::switch_to_draw_mode()
 {

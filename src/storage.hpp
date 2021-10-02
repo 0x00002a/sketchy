@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
+
 #include <variant>
 
 #include <qpixmap.h>
@@ -40,15 +42,17 @@ public:
     void paint(QPainter& to, bool use_cache = true) const;
     void append(const line& l);
 
+    auto parts() const -> const std::vector<line>& { return parts_; }
+    void set_parts(const std::vector<line>& p) { parts_ = p; }
+
 private:
-    std::vector<line> parts;
+    std::vector<line> parts_;
     bool img_updated_{false};
     mutable QPixmap cached_img_;
 };
 } // namespace detail
 
-using storable_obj = std::variant<detail::stroke>;
 
-auto to_json(const storable_obj& obj) -> std::string;
+auto to_json(const std::vector<detail::stroke>& obj) -> std::string;
 
 } // namespace sketchy

@@ -40,6 +40,9 @@ public:
 
     void curr_mode(mode m);
 
+    auto strokes() const -> const std::vector<stroke>& { return strokes_; }
+    void set_strokes(const std::vector<stroke>&);
+
 protected:
     bool event(QEvent* e) override;
     void paintEvent(QPaintEvent* e) override;

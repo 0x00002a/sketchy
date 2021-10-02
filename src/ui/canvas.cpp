@@ -76,6 +76,9 @@ void canvas::paintEvent(QPaintEvent* e)
     }
 }
 
+    void canvas::set_strokes(const std::vector<stroke>&) {
+
+    }
 void canvas::curr_mode(mode m) { curr_mode_ = m; }
 void canvas::handle_pen_down(const QPointF& at)
 {
