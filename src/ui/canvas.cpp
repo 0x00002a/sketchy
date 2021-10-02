@@ -206,7 +206,7 @@ void canvas::add_stroke(const QPointF& at)
 
     scene_.addItem(s);
     logger_->trace("add line: [{}] -> [{}]", last_pt, at);
-    scene_.update(s->boundingRect());
+    scene_.update(s->boundingRect().marginsAdded({20, 20, 20, 20}));
 }
 
 void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
