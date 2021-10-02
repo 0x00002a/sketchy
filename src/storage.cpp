@@ -21,6 +21,7 @@
 #include "cronch/serialize.hpp"
 
 #include <qpainter.h>
+#include <qpainterpath.h>
 
 #include <cronch/json/boost.hpp>
 #include <cronch/meta.hpp>
@@ -52,14 +53,14 @@ CRONCH_META_TYPE(stroke::line, (cm::field("s", &stroke::line::start),
                                 cm::field("c", &stroke::line::colour)));
 CRONCH_META_TYPE(stroke,
                  (cm::field("off", &stroke::offset),
-                  cm::field("boun", &stroke::bounds),
+                  // cm::field("boun", &stroke::bounds_),
                   cm::property("pts", &stroke::parts, &stroke::set_parts)));
 
 namespace sketchy {
 namespace detail {
 void stroke::update_bounds(const QPointF& at)
 {
-    auto& b = bounds;
+    auto& b = bounds_;
 
     b.setTopLeft(QPointF{std::min(at.x(), b.topLeft().x()),
                          std::min(at.y(), b.topLeft().y())});
@@ -67,34 +68,46 @@ void stroke::update_bounds(const QPointF& at)
                              std::max(at.y(), b.bottomRight().y())});
 }
 
-void stroke::paint(QPainter& to, bool use_cache) const
+void stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+                   QWidget* w)
 {
-    to.save();
-    std::for_each(parts_.begin(), parts_.end(), [&, this](const line& part) {
+    to->save();
+    /*std::for_each(parts_.begin(), parts_.end(), [&, this](const line& part) {
         QPen p;
         p.setColor(part.colour);
         p.setWidthF(part.weight);
         to.setPen(p);
         to.drawLine(part.start, part.end);
-    });
-    to.restore();
+    });*/
 }
-void stroke::append(const line& l)
+void stroke::append(line* l)
 {
-    img_updated_ = true;
+    l->setParentItem(this);
     parts_.emplace_back(l);
 }
+void stroke::line::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+                         QWidget* w)
+{
+    to->save();
+    QPen p{colour};
+    p.setWidthF(weight);
 
+    to->setPen(p);
+    to->drawLine(start, end);
+    to->restore();
+}
+
+auto stroke::handle_erase(const QPainterPath& area) -> bool { return false; }
 } // namespace detail
 
 auto to_json(const std::vector<detail::stroke>& obj) -> std::string
 {
-    return cronch::serialize<cronch::json::boost>(obj);
+    // return cronch::serialize<cronch::json::boost>(obj);
 }
 
 auto from_json(const std::string& j) -> std::vector<detail::stroke>
 {
-    return cronch::deserialize<std::vector<detail::stroke>>(
-        cronch::json::boost{j});
+    /*return cronch::deserialize<std::vector<detail::stroke>>(
+        cronch::json::boost{j});*/
 }
 } // namespace sketchy

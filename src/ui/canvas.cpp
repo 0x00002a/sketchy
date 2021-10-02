@@ -22,7 +22,10 @@
 
 #include <iterator>
 #include <qapplication.h>
+#include <qboxlayout.h>
 #include <qevent.h>
+#include <qgraphicsscene.h>
+#include <qgraphicsview.h>
 #include <qnamespace.h>
 
 #include <qpixmap.h>
@@ -37,57 +40,48 @@ void fill_with_transparent(QPixmap& m)
 }
 auto rasterise(const sketchy::detail::stroke& s) -> QPixmap
 {
-    assert(s.bounds.isValid());
+    /*assert(s.bounds.isValid());
     QPixmap stroke_raster{s.bounds.size().toSize()};
     fill_with_transparent(stroke_raster);
     QPainter p{&stroke_raster};
     s.paint(p);
     p.end();
-    return stroke_raster;
+    return stroke_raster;*/
 }
 } // namespace
 namespace sketchy::ui {
 
 canvas::canvas(logger_t logger)
-    : logger_{std::move(logger)}, curr_pen_{Qt::black}
+    : logger_{std::move(logger)},
+      curr_pen_{Qt::black},
+      viewport_{new canvas_view{&scene_}}
 {
+    scene_.setBackgroundBrush(QBrush{Qt::white});
+    (new QVBoxLayout{this})->addWidget(viewport_);
+    connect(&scene_, &canvas_scene::on_pointer_event, this,
+            &canvas::on_canvas_event);
+    viewport_->setMouseTracking(true);
 }
 
 void canvas::paintEvent(QPaintEvent* e)
 {
-    const auto bounds = e->region().boundingRect();
-    const auto aval = QRectF{bounds.topLeft() + move_offset_,
-                             bounds.bottomRight() + move_offset_};
-    QPainter p{this};
-    p.fillRect(bounds, Qt::white);
-
-    std::size_t i{0};
-    std::for_each(strokes_.begin(), strokes_.end(),
-                  [&, this](const stroke& s) mutable {
-                      logger_->trace("draw at: [{}]", s.bounds);
-
-                      p.drawPixmap(s.bounds.topLeft() - move_offset_,
-                                   raster_strokes_.at(i));
-                      ++i;
-                  });
-    if (pen_down_) {
-        p.translate(-move_offset_);
-        active_stroke_.paint(p);
-    }
+    QWidget::paintEvent(e);
+    return;
 }
 
 void canvas::set_strokes(const std::vector<stroke>& s)
 {
-    strokes_ = s;
+    /*strokes_ = s;
     raster_strokes_.clear();
     raster_strokes_.reserve(s.size());
     std::transform(strokes_.begin(), strokes_.end(),
-                   std::back_inserter(raster_strokes_), rasterise);
+                   std::back_inserter(raster_strokes_), rasterise);*/
     update();
 }
 void canvas::curr_mode(mode m) { curr_mode_ = m; }
 void canvas::handle_pen_down(const QPointF& at)
 {
+    logger_->trace("handle_pen_down()");
     pen_down_ = true;
     switch (curr_mode_) {
     case mode::draw:
@@ -103,6 +97,7 @@ void canvas::handle_pen_down(const QPointF& at)
 }
 void canvas::handle_pen_up(const QPointF& at)
 {
+    logger_->trace("handle_pen_up()");
     switch (curr_mode_) {
     case mode::draw:
         if (pen_down_) {
@@ -115,6 +110,7 @@ void canvas::handle_pen_up(const QPointF& at)
 }
 void canvas::handle_pen_move(const QPointF& at)
 {
+    logger_->trace("handle_pen_move()");
     if (pen_down_) {
         switch (curr_mode_) {
         case mode::draw:
@@ -137,40 +133,70 @@ void canvas::handle_pen_move(const QPointF& at)
         last_pt = at;
     }
 }
+void canvas_view::mouseReleaseEvent(QMouseEvent* e)
+{
+    QApplication::sendEvent(scene(), e);
+}
+void canvas_view::mouseMoveEvent(QMouseEvent* e)
+{
 
-bool canvas::event(QEvent* e)
+    QApplication::sendEvent(scene(), e);
+}
+void canvas_view::mousePressEvent(QMouseEvent* e)
+{
+
+    QApplication::sendEvent(scene(), e);
+}
+
+bool canvas_scene::event(QEvent* e)
 {
     if (e->isPointerEvent()) {
         auto* pe = static_cast<QPointerEvent*>(e);
-        for (const auto& pt : pe->points()) {
-            const auto pos = pt.position() + move_offset_;
-            if (pen_down_) {
-                curr_weight_ = pt.pressure();
-                logger_->debug("recorded pressure: {}", curr_weight_);
-            }
-            switch (pt.state()) {
-            case QEventPoint::State::Pressed:
-                handle_pen_down(pos);
-                break;
-            case QEventPoint::State::Released:
-                handle_pen_up(pos);
-                break;
-            case QEventPoint::State::Updated:
-                handle_pen_move(pos);
-                break;
-            default:
-                break;
-            }
-        }
+        emit on_pointer_event(pe);
         return true;
     }
-    else {
-        return QWidget::event(e);
+
+    return QGraphicsScene::event(e);
+}
+
+bool canvas_view::event(QEvent* e)
+{
+    if (e->isPointerEvent()) {
+        auto* pe = static_cast<QPointerEvent*>(e);
+        return QApplication::sendEvent(scene(), e);
+    }
+
+    return QGraphicsView::event(e);
+}
+void canvas::on_canvas_event(QPointerEvent* pe)
+{
+    for (const auto& pt : pe->points()) {
+        const auto pos = pt.position() + move_offset_;
+        if (pen_down_) {
+            curr_weight_ = pt.pressure();
+            logger_->debug("recorded pressure: {}", curr_weight_);
+        }
+        switch (pt.state()) {
+        case QEventPoint::State::Pressed:
+            handle_pen_down(pos);
+            break;
+        case QEventPoint::State::Released:
+            handle_pen_up(pos);
+            break;
+        case QEventPoint::State::Updated:
+            handle_pen_move(pos);
+            break;
+        default:
+            break;
+        }
     }
 }
 void canvas::prime_stroke(const QPointF& at)
 {
-    active_stroke_.offset = move_offset_;
+    assert(!active_stroke_);
+    active_stroke_ = new stroke;
+    active_stroke_->offset = move_offset_;
+    scene_.addItem(active_stroke_);
 }
 template<typename T>
 constexpr auto diff(T lhs, T rhs) -> T
@@ -180,24 +206,33 @@ constexpr auto diff(T lhs, T rhs) -> T
 
 void canvas::finish_stroke(const QPointF& at)
 {
-    active_stroke_.update_bounds(at);
-    raster_strokes_.emplace_back(rasterise(active_stroke_));
-    strokes_.emplace_back(std::move(active_stroke_));
-    active_stroke_ = {};
+    assert(active_stroke_);
+    active_stroke_->update_bounds(at);
+    // raster_strokes_.emplace_back(rasterise(active_stroke_));
+    strokes_.emplace_back(active_stroke_);
+    active_stroke_ = nullptr;
 }
 void canvas::add_stroke(const QPointF& at)
 {
-
+    assert(active_stroke_);
     const auto dpr = devicePixelRatioF();
-    active_stroke_.update_bounds(at);
+    /*active_stroke_.update_bounds(at);
     active_stroke_.append({
         .start = last_pt,
         .end = at,
         .weight = curr_weight_,
         .colour = Qt::black,
+    });*/
+    active_stroke_->append(new stroke::line{
+        last_pt,
+        at,
+        curr_weight_,
+        Qt::black,
     });
+    // scene_.addLine(QLineF{last_pt, at}, curr_pen_);
+    logger_->trace("add line: [{}] -> [{}]", last_pt, at);
 
-    update(active_stroke_.bounds.toRect().normalized());
+    // update(active_stroke_.bounds.toRect().normalized());
 }
 
 } // namespace sketchy::ui

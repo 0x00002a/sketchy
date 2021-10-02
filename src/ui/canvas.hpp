@@ -17,7 +17,9 @@
 
 #pragma once
 
+#include <boost/system/detail/errc.hpp>
 #include <qevent.h>
+#include <qgraphicsview.h>
 #include <qpainter.h>
 #include <qpoint.h>
 #include <qwidget.h>
@@ -25,26 +27,52 @@
 #include "logger.hpp"
 #include "storage.hpp"
 
+class QGraphicsView;
 namespace sketchy::ui {
 
+class canvas_view : public QGraphicsView {
+    Q_OBJECT
+public:
+    using QGraphicsView::QGraphicsView;
+
+protected:
+    bool event(QEvent* e) override;
+    void mouseReleaseEvent(QMouseEvent* e) override;
+    void mouseMoveEvent(QMouseEvent* e) override;
+    void mousePressEvent(QMouseEvent* e) override;
+signals:
+    void on_pointer_event(QPointerEvent* ev) const;
+};
+class canvas_scene : public QGraphicsScene {
+    Q_OBJECT
+public:
+    using QGraphicsScene::QGraphicsScene;
+
+protected:
+    bool event(QEvent* e) override;
+signals:
+    void on_pointer_event(QPointerEvent* ev) const;
+};
 class canvas : public QWidget {
+    Q_OBJECT
     using stroke = detail::stroke;
 
 public:
     enum class mode {
         move,
         draw,
-
     };
     explicit canvas(logger_t logger);
 
     void curr_mode(mode m);
 
-    auto strokes() const -> const std::vector<stroke>& { return strokes_; }
+    auto strokes() const -> const std::vector<stroke>& { return {}; }
     void set_strokes(const std::vector<stroke>&);
 
+private slots:
+    void on_canvas_event(QPointerEvent* e);
+
 protected:
-    bool event(QEvent* e) override;
     void paintEvent(QPaintEvent* e) override;
 
 private:
@@ -62,10 +90,12 @@ private:
     QPointF last_pt;
     QPen curr_pen_;
     bool pen_down_{false};
-    stroke active_stroke_;
-    std::vector<stroke> strokes_;
+    stroke* active_stroke_{nullptr};
+    std::vector<stroke*> strokes_;
     std::vector<QPixmap> raster_strokes_;
     QPointF move_offset_;
+    canvas_scene scene_;
+    canvas_view* viewport_;
     float curr_weight_{0};
 };
 } // namespace sketchy::ui

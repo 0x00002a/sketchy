@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <qgraphicsitem.h>
 #include <variant>
 
 #include <qpixmap.h>
@@ -25,9 +26,14 @@
 
 namespace sketchy {
 namespace detail {
-class stroke {
+class stroke : public QGraphicsItem {
 public:
-    struct line {
+    class line : public QGraphicsLineItem {
+    public:
+        line(QPointF start, QPointF end, float weight, QColor colour)
+            : start{start}, end{end}, weight{weight}, colour{colour}
+        {
+        }
         QPointF start;
         QPointF end;
         float weight{0};
@@ -38,18 +44,28 @@ public:
             return l.start == start && l.end == end && l.weight == weight &&
                    l.colour == colour;
         }
+        auto boundingRect() const -> QRectF override
+        {
+            return QRectF{start, end};
+        }
+        void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+                   QWidget* w) override;
     };
 
-    QRectF bounds;
     QPointF offset;
 
+    auto boundingRect() const -> QRectF override { return bounds_; }
+
     void update_bounds(const QPointF& at);
+    /// Erases parts intersecting. Returns true if any erased
+    auto handle_erase(const QPainterPath& area) -> bool;
 
-    void paint(QPainter& to, bool use_cache = true) const;
-    void append(const line& l);
+    void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+               QWidget* w) override;
+    void append(line* l);
 
-    auto parts() const -> const std::vector<line>& { return parts_; }
-    void set_parts(const std::vector<line>& p) { parts_ = p; }
+    auto parts() const -> const std::vector<line*>& { return {}; }
+    void set_parts(const std::vector<line>& p) {}
 
     auto operator==(const stroke& s) const -> bool
     {
@@ -57,7 +73,8 @@ public:
     }
 
 private:
-    std::vector<line> parts_;
+    QRectF bounds_;
+    std::vector<line*> parts_;
     bool img_updated_{false};
     mutable QPixmap cached_img_;
 };
