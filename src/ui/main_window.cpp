@@ -21,12 +21,14 @@
 
 #include <QHBoxLayout>
 #include <fstream>
+#include <qapplication.h>
 #include <qevent.h>
 #include <qfile.h>
 #include <qfiledialog.h>
 #include <qkeysequence.h>
 #include <qmainwindow.h>
 #include <qmenubar.h>
+#include <qscreen.h>
 #include <qscrollarea.h>
 #include <qstackedwidget.h>
 #include <qtoolbar.h>
@@ -42,6 +44,8 @@ main_window::main_window()
     auto* layout = new QHBoxLayout{w};
     layout->addWidget(center_container_);
     setCentralWidget(w);
+    const auto aval = QApplication::primaryScreen()->availableSize();
+    setMinimumSize(aval.width() / 3 * 2, aval.height() / 3 * 2);
 
     center_container_->addWidget(canvas_);
     center_container_->setCurrentWidget(canvas_);
