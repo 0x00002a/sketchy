@@ -34,10 +34,7 @@ main_window::main_window()
     layout->addWidget(center_container_);
     setCentralWidget(w);
 
-    auto* sa = new infinite_scroller;
-    sa->widget(canvas_);
-
-    center_container_->addWidget(sa);
-    center_container_->setCurrentWidget(sa);
+    center_container_->addWidget(canvas_);
+    center_container_->setCurrentWidget(canvas_);
 }
 } // namespace sketchy::ui

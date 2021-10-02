@@ -35,7 +35,15 @@ class canvas : public QWidget {
     };
 
 public:
+    enum class mode {
+        zoom,
+        move,
+        draw,
+
+    };
     explicit canvas(logger_t logger);
+
+    void curr_mode(mode m);
 
 protected:
     bool event(QEvent* e) override;
@@ -46,6 +54,12 @@ private:
     void prime_stroke(const QPointF& at);
     void finish_stroke(const QPointF& at);
 
+    void handle_pen_down(const QPointF& at);
+    void handle_pen_up(const QPointF& at);
+    void handle_pen_move(const QPointF& at);
+
+    mode curr_mode_;
+    float zoom_{1};
     logger_t logger_;
     QPointF last_pt;
     QPen curr_pen_;

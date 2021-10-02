@@ -19,6 +19,9 @@
 
 #include <QMouseEvent>
 
+#include <qevent.h>
+#include <spdlog/spdlog.h>
+
 namespace {
 void fill_with_transparent(QPixmap& m)
 {
@@ -52,6 +55,40 @@ void canvas::paintEvent(QPaintEvent* e)
     }
 }
 
+void canvas::curr_mode(mode m) { curr_mode_ = m; }
+void canvas::handle_pen_down(const QPointF& at)
+{
+    pen_down_ = true;
+    switch (curr_mode_) {
+    case mode::draw:
+        prime_stroke(at);
+        last_pt = at;
+        break;
+    }
+}
+void canvas::handle_pen_up(const QPointF& at)
+{
+    switch (curr_mode_) {
+    case mode::draw:
+        if (pen_down_) {
+            finish_stroke(at);
+        }
+        break;
+    }
+    pen_down_ = false;
+}
+void canvas::handle_pen_move(const QPointF& at)
+{
+    switch (curr_mode_) {
+    case mode::draw:
+        if (pen_down_) {
+            add_stroke(at);
+            last_pt = at;
+        }
+        break;
+    }
+}
+
 bool canvas::event(QEvent* e)
 {
     if (e->isPointerEvent()) {
@@ -59,20 +96,13 @@ bool canvas::event(QEvent* e)
         for (const auto& pt : pe->points()) {
             switch (pt.state()) {
             case QEventPoint::State::Pressed:
-                prime_stroke(pt.position());
-                last_pt = pt.position();
-                pen_down_ = true;
+                handle_pen_down(pt.position());
                 break;
             case QEventPoint::State::Released:
-                if (pen_down_) {
-                    finish_stroke(pt.position());
-                }
-                pen_down_ = false;
+                handle_pen_up(pt.position());
+                break;
             case QEventPoint::State::Updated:
-                if (pen_down_) {
-                    add_stroke(pt.position());
-                    last_pt = pt.position();
-                }
+                handle_pen_move(pt.position());
                 break;
             default:
                 break;
