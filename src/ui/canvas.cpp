@@ -20,7 +20,10 @@
 
 #include <QMouseEvent>
 
+#include <qapplication.h>
 #include <qevent.h>
+#include <qnamespace.h>
+
 #include <spdlog/spdlog.h>
 
 namespace {
@@ -50,7 +53,7 @@ void canvas::paintEvent(QPaintEvent* e)
         if (aval.contains(s.bounds.topLeft()) ||
             aval.contains(s.bounds.bottomRight())) {
             logger_->trace("draw at: [{}]", s.bounds.topLeft());
-            p.drawPixmap(s.bounds.topLeft() - move_offset_, s.img);
+            p.drawPixmap(s.bounds.topLeft() - (move_offset_ - s.offset), s.img);
         }
         else {
             logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, {}]",
@@ -72,10 +75,15 @@ void canvas::handle_pen_down(const QPointF& at)
     pen_down_ = true;
     switch (curr_mode_) {
     case mode::draw:
+        QApplication::setOverrideCursor(QCursor{Qt::CursorShape::CrossCursor});
         prime_stroke(at);
         break;
+    case mode::move:
+        QApplication::setOverrideCursor(
+            QCursor{Qt::CursorShape::DragMoveCursor});
+        break;
     }
-    last_pt = at + move_offset_;
+    last_pt = at;
 }
 void canvas::handle_pen_up(const QPointF& at)
 {
@@ -86,6 +94,7 @@ void canvas::handle_pen_up(const QPointF& at)
         }
         break;
     }
+    QApplication::setOverrideCursor(QCursor{});
     pen_down_ = false;
 }
 void canvas::handle_pen_move(const QPointF& at)
@@ -145,7 +154,7 @@ void canvas::prime_stroke(const QPointF& at)
     const auto dpr = devicePixelRatioF();
     active_stroke_.img =
         QPixmap{qRound(rect().width() * dpr), qRound(rect().height() * dpr)};
-
+    active_stroke_.offset = move_offset_;
     fill_with_transparent(active_stroke_.img);
 }
 template<typename T>
@@ -178,7 +187,7 @@ void canvas::add_stroke(const QPointF& at)
     assert(!active_stroke_.img.isNull());
     QPainter with{&active_stroke_.img};
     with.setPen(curr_pen_);
-    with.drawLine(last_pt, at);
+    with.drawLine(last_pt - move_offset_, at - move_offset_);
     with.end();
 
     active_stroke_.update_bounds(at);

@@ -30,6 +30,7 @@ class canvas : public QWidget {
     struct stroke {
         QPixmap img;
         QRectF bounds;
+        QPointF offset;
 
         void update_bounds(const QPointF& at);
     };
