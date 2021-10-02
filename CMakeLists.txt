@@ -4,6 +4,8 @@ project(sketchy)
 
 set(CMAKE_CXX_STANDARD 20)
 
+option(SKETCHY_BUILD_TESTS "Whether to build the tests" OFF)
+
 include(${CMAKE_CURRENT_LIST_DIR}/conan.cmake)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Svg)
@@ -25,7 +27,6 @@ endif()
 set(CMAKE_AUTOMOC ON)
 
 set(SRC 
-    "src/main.cpp"
     "src/storage.cpp"
 
     "src/ui/main_window.cpp"
@@ -34,10 +35,20 @@ set(SRC
 )
 
 set(EXE_NAME sketchy)
+set(LIB_NAME libsketchy)
 
-add_executable(${EXE_NAME} ${SRC})
+add_library(${LIB_NAME} ${SRC})
+
 
 find_package(spdlog REQUIRED)
 
-target_link_libraries(${EXE_NAME} PUBLIC Qt6::Widgets Qt6::Core Qt6::Svg spdlog::spdlog cronch)
-target_include_directories(${EXE_NAME} PUBLIC "./src")
+target_link_libraries(${LIB_NAME} PUBLIC Qt6::Widgets Qt6::Core Qt6::Svg spdlog::spdlog cronch)
+target_include_directories(${LIB_NAME} PUBLIC "./src")
+
+if (SKETCHY_BUILD_TESTS) 
+    add_subdirectory(test)
+endif()
+
+
+add_executable(${EXE_NAME} "src/main.cpp")
+target_link_libraries(${EXE_NAME} ${LIB_NAME})

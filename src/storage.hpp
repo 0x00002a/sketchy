@@ -30,8 +30,14 @@ public:
     struct line {
         QPointF start;
         QPointF end;
-        float weight;
+        float weight{0};
         QColor colour;
+
+        auto operator==(const line& l) const -> bool
+        {
+            return l.start == start && l.end == end && l.weight == weight &&
+                   l.colour == colour;
+        }
     };
 
     QRectF bounds;
@@ -45,6 +51,11 @@ public:
     auto parts() const -> const std::vector<line>& { return parts_; }
     void set_parts(const std::vector<line>& p) { parts_ = p; }
 
+    auto operator==(const stroke& s) const -> bool
+    {
+        return s.parts_ == parts_;
+    }
+
 private:
     std::vector<line> parts_;
     bool img_updated_{false};
@@ -54,5 +65,7 @@ private:
 
 
 auto to_json(const std::vector<detail::stroke>& obj) -> std::string;
+
+auto from_json(const std::string& j) -> std::vector<detail::stroke>;
 
 } // namespace sketchy

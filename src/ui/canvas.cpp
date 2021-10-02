@@ -20,10 +20,12 @@
 
 #include <QMouseEvent>
 
+#include <iterator>
 #include <qapplication.h>
 #include <qevent.h>
 #include <qnamespace.h>
 
+#include <qpixmap.h>
 #include <spdlog/spdlog.h>
 
 namespace {
@@ -32,6 +34,16 @@ void fill_with_transparent(QPixmap& m)
     QColor c{Qt::white};
     c.setAlpha(0);
     m.fill(c);
+}
+auto rasterise(const sketchy::detail::stroke& s) -> QPixmap
+{
+    assert(s.bounds.isValid());
+    QPixmap stroke_raster{s.bounds.size().toSize()};
+    fill_with_transparent(stroke_raster);
+    QPainter p{&stroke_raster};
+    s.paint(p);
+    p.end();
+    return stroke_raster;
 }
 } // namespace
 namespace sketchy::ui {
@@ -76,9 +88,15 @@ void canvas::paintEvent(QPaintEvent* e)
     }
 }
 
-    void canvas::set_strokes(const std::vector<stroke>&) {
-
-    }
+void canvas::set_strokes(const std::vector<stroke>& s)
+{
+    strokes_ = s;
+    raster_strokes_.clear();
+    raster_strokes_.reserve(s.size());
+    std::transform(strokes_.begin(), strokes_.end(),
+                   std::back_inserter(raster_strokes_), rasterise);
+    update();
+}
 void canvas::curr_mode(mode m) { curr_mode_ = m; }
 void canvas::handle_pen_down(const QPointF& at)
 {
@@ -171,12 +189,7 @@ constexpr auto diff(T lhs, T rhs) -> T
 void canvas::finish_stroke(const QPointF& at)
 {
     active_stroke_.update_bounds(at);
-    QPixmap stroke_raster{active_stroke_.bounds.size().toSize()};
-    fill_with_transparent(stroke_raster);
-    QPainter p{&stroke_raster};
-    active_stroke_.paint(p);
-    p.end();
-    raster_strokes_.emplace_back(std::move(stroke_raster));
+    raster_strokes_.emplace_back(rasterise(active_stroke_));
     strokes_.emplace_back(std::move(active_stroke_));
     active_stroke_ = {};
 }

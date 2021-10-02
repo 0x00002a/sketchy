@@ -20,6 +20,9 @@
 #include "storage.hpp"
 
 #include <QHBoxLayout>
+#include <fstream>
+#include <qevent.h>
+#include <qfile.h>
 #include <qkeysequence.h>
 #include <qmainwindow.h>
 #include <qmenubar.h>
@@ -62,15 +65,29 @@ main_window::main_window()
     auto* save_act = new QAction{tr("save"), this};
     save_act->setShortcut(QKeySequence::Save);
     connect(save_act, &QAction::triggered, this, &main_window::on_save);
+
+    auto* load_act = new QAction{tr("open"), this};
+    load_act->setShortcut(QKeySequence::Open);
+    connect(load_act, &QAction::triggered, [this] { on_load_from(""); });
+
     auto* mfile = menuBar()->addMenu("&File");
     mfile->addAction(save_act);
+    mfile->addAction(load_act);
 }
 void main_window::on_save_as(const QString&) {}
 void main_window::on_save()
 {
-    spdlog::info("json: {}", to_json(canvas_->strokes()));
+    const auto json = to_json(canvas_->strokes());
+    spdlog::info("json: {}", json);
+    std::ofstream f{"./output.json"};
+    f.write(json.c_str(), json.size());
 }
-void main_window::on_load_from(const QString&) {}
+void main_window::on_load_from(const QString&)
+{
+    QFile f{"./output.json"};
+    f.open(QFile::ReadOnly);
+    canvas_->set_strokes(from_json(f.readAll().toStdString()));
+}
 
 void main_window::switch_to_draw_mode()
 {

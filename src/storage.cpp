@@ -92,4 +92,9 @@ auto to_json(const std::vector<detail::stroke>& obj) -> std::string
     return cronch::serialize<cronch::json::boost>(obj);
 }
 
+auto from_json(const std::string& j) -> std::vector<detail::stroke>
+{
+    return cronch::deserialize<std::vector<detail::stroke>>(
+        cronch::json::boost{j});
+}
 } // namespace sketchy

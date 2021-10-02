@@ -13,6 +13,9 @@ include(${CMAKE_BINARY_DIR}/conan.cmake)
 
 
 set(CONAN_DEPS spdlog/1.9.2)
+if (SKETCHY_BUILD_TESTS) 
+  list(APPEND CONAN_DEPS doctest/2.4.6)
+endif()
 
 conan_cmake_configure(REQUIRES ${CONAN_DEPS} GENERATORS cmake_find_package)
 conan_cmake_autodetect(settings)
