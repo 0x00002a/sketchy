@@ -15,31 +15,40 @@
 // You should have received a copy of the GNU General Public License
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include <variant>
 
-#include <qmainwindow.h>
+#include <qpixmap.h>
+#include <qpoint.h>
+#include <qrect.h>
 
-class QStackedWidget;
-
-namespace sketchy::ui {
-class canvas;
-
-class main_window : public QMainWindow {
-    Q_OBJECT
+namespace sketchy {
+namespace detail {
+class stroke {
 public:
-    main_window();
+    struct line {
+        QPointF start;
+        QPointF end;
+        float weight;
+        QColor colour;
+    };
 
-private slots:
-    void switch_to_draw_mode();
-    void switch_to_move_mode();
-    void on_save_as(const QString&);
-    void on_save();
-    void on_load_from(const QString&);
+    QRectF bounds;
+    QPointF offset;
+
+    void update_bounds(const QPointF& at);
+
+    void paint(QPainter& to, bool use_cache = true) const;
+    void append(const line& l);
 
 private:
-    QStackedWidget* center_container_;
-    canvas* canvas_;
-    QString save_path_;
+    std::vector<line> parts;
+    bool img_updated_{false};
+    mutable QPixmap cached_img_;
 };
+} // namespace detail
 
-} // namespace sketchy::ui
+using storable_obj = std::variant<detail::stroke>;
+
+auto to_json(const storable_obj& obj) -> std::string;
+
+} // namespace sketchy

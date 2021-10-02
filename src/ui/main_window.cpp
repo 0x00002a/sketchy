@@ -57,6 +57,12 @@ main_window::main_window()
     mbar->addAction(move_act);
     mbar->addAction(draw_act);
 }
+    void main_window::on_save_as(const QString&) {
+
+    }
+    void main_window::on_save() {}
+    void main_window::on_load_from(const QString&) {}
+
 
 void main_window::switch_to_draw_mode()
 {

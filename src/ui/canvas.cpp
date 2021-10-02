@@ -49,23 +49,30 @@ void canvas::paintEvent(QPaintEvent* e)
     QPainter p{this};
     p.fillRect(bounds, Qt::white);
 
-    std::for_each(strokes_.begin(), strokes_.end(), [&, this](const stroke& s) {
-        if (aval.contains(s.bounds.topLeft()) ||
-            aval.contains(s.bounds.bottomRight())) {
-            logger_->trace("draw at: [{}]", s.bounds.topLeft());
-            p.drawPixmap(s.bounds.topLeft() - (move_offset_ - s.offset), s.img);
-        }
-        else {
-            logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, {}]",
-                           s.bounds.topLeft().x(), s.bounds.topLeft().y(),
-                           s.bounds.bottomRight().x(),
-                           s.bounds.bottomRight().x(), aval.topLeft().x(),
-                           aval.topLeft().y(), aval.bottomRight().x(),
-                           aval.bottomRight().y());
-        }
-    });
-    if (!active_stroke_.img.isNull()) {
-        p.drawPixmap(0, 0, active_stroke_.img);
+    std::size_t i{0};
+    std::for_each(
+        strokes_.begin(), strokes_.end(), [&, this](const stroke& s) mutable {
+            if (aval.contains(s.bounds.topLeft()) ||
+                aval.contains(s.bounds.bottomRight())) {
+                logger_->trace("draw at: [{}]", s.bounds.topLeft());
+
+                p.drawPixmap(s.bounds.topLeft() - move_offset_,
+                             raster_strokes_.at(i));
+            }
+            else {
+                logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, "
+                               "{}]",
+                               s.bounds.topLeft().x(), s.bounds.topLeft().y(),
+                               s.bounds.bottomRight().x(),
+                               s.bounds.bottomRight().x(), aval.topLeft().x(),
+                               aval.topLeft().y(), aval.bottomRight().x(),
+                               aval.bottomRight().y());
+            }
+            ++i;
+        });
+    if (pen_down_) {
+        p.translate(-move_offset_);
+        active_stroke_.paint(p);
     }
 }
 
@@ -150,12 +157,7 @@ bool canvas::event(QEvent* e)
 }
 void canvas::prime_stroke(const QPointF& at)
 {
-
-    const auto dpr = devicePixelRatioF();
-    active_stroke_.img =
-        QPixmap{qRound(rect().width() * dpr), qRound(rect().height() * dpr)};
     active_stroke_.offset = move_offset_;
-    fill_with_transparent(active_stroke_.img);
 }
 template<typename T>
 constexpr auto diff(T lhs, T rhs) -> T
@@ -163,19 +165,15 @@ constexpr auto diff(T lhs, T rhs) -> T
     return lhs > rhs ? lhs - rhs : rhs - lhs;
 }
 
-void canvas::stroke::update_bounds(const QPointF& at)
-{
-    auto& b = bounds;
-
-    b.setTopLeft(QPointF{std::min(at.x(), b.topLeft().x()),
-                         std::min(at.y(), b.topLeft().y())});
-    b.setBottomRight(QPointF{std::max(at.x(), b.bottomRight().x()),
-                             std::max(at.y(), b.bottomRight().y())});
-}
 void canvas::finish_stroke(const QPointF& at)
 {
     active_stroke_.update_bounds(at);
-
+    QPixmap stroke_raster{active_stroke_.bounds.size().toSize()};
+    fill_with_transparent(stroke_raster);
+    QPainter p{&stroke_raster};
+    active_stroke_.paint(p);
+    p.end();
+    raster_strokes_.emplace_back(std::move(stroke_raster));
     strokes_.emplace_back(std::move(active_stroke_));
     active_stroke_ = {};
 }
@@ -184,13 +182,18 @@ void canvas::add_stroke(const QPointF& at)
     auto max_pen_radius = 20;
 
     const auto dpr = devicePixelRatioF();
-    assert(!active_stroke_.img.isNull());
-    QPainter with{&active_stroke_.img};
+    /*QPainter with{&active_stroke_.img};
     with.setPen(curr_pen_);
     with.drawLine(last_pt - move_offset_, at - move_offset_);
-    with.end();
+    with.end();*/
 
     active_stroke_.update_bounds(at);
+    active_stroke_.append({
+        .start = last_pt,
+        .end = at,
+        .weight = 1.0,
+        .colour = Qt::black,
+    });
 
     /*update(QRect{last_pt.toPoint(), at.toPoint()}.normalized().adjusted(
         -max_pen_radius, -max_pen_radius, max_pen_radius, max_pen_radius));*/

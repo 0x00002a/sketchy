@@ -23,17 +23,12 @@
 #include <qwidget.h>
 
 #include "logger.hpp"
+#include "storage.hpp"
 
 namespace sketchy::ui {
 
 class canvas : public QWidget {
-    struct stroke {
-        QPixmap img;
-        QRectF bounds;
-        QPointF offset;
-
-        void update_bounds(const QPointF& at);
-    };
+    using stroke = detail::stroke;
 
 public:
     enum class mode {
@@ -66,6 +61,7 @@ private:
     bool pen_down_{false};
     stroke active_stroke_;
     std::vector<stroke> strokes_;
+    std::vector<QPixmap> raster_strokes_;
     QPointF move_offset_;
 };
 } // namespace sketchy::ui
