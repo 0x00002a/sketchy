@@ -22,6 +22,8 @@
 #include <qpoint.h>
 #include <qwidget.h>
 
+#include "logger.hpp"
+
 namespace sketchy::ui {
 
 class canvas : public QWidget {
@@ -33,7 +35,7 @@ class canvas : public QWidget {
     };
 
 public:
-    canvas();
+    explicit canvas(logger_t logger);
 
 protected:
     bool event(QEvent* e) override;
@@ -43,6 +45,8 @@ private:
     void add_stroke(const QPointF& at);
     void prime_stroke(const QPointF& at);
     void finish_stroke(const QPointF& at);
+
+    logger_t logger_;
     QPointF last_pt;
     QPen curr_pen_;
     bool pen_down_{false};

@@ -20,10 +20,11 @@
 
 #include <QHBoxLayout>
 #include <qstackedwidget.h>
+#include <spdlog/spdlog.h>
 
 namespace sketchy::ui {
 main_window::main_window()
-    : center_container_{new QStackedWidget}, canvas_{new canvas}
+    : center_container_{new QStackedWidget}, canvas_{new canvas{spdlog::default_logger()}}
 {
     auto* w = new QWidget;
     auto* layout = new QHBoxLayout{w};

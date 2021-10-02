@@ -19,10 +19,13 @@
 
 #include <qapplication.h>
 
+#include <spdlog/spdlog.h>
+
 using namespace sketchy;
 
 int main(int argc, char** argv)
 {
+    spdlog::set_level(spdlog::level::trace);
 
     QApplication app{argc, argv};
 

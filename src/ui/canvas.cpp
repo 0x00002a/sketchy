@@ -19,11 +19,20 @@
 
 #include <QMouseEvent>
 
-#include <iostream>
-
+namespace {
+void fill_with_transparent(QPixmap& m)
+{
+    QColor c{Qt::white};
+    c.setAlpha(0);
+    m.fill(c);
+}
+} // namespace
 namespace sketchy::ui {
 
-canvas::canvas() : curr_pen_{Qt::black} {}
+canvas::canvas(logger_t logger)
+    : logger_{std::move(logger)}, curr_pen_{Qt::black}
+{
+}
 
 void canvas::paintEvent(QPaintEvent* e)
 {
@@ -31,9 +40,11 @@ void canvas::paintEvent(QPaintEvent* e)
     QPainter p{this};
     p.fillRect(aval.boundingRect(), Qt::white);
 
-    std::for_each(strokes_.begin(), strokes_.end(), [&](const auto& s) {
+    std::for_each(strokes_.begin(), strokes_.end(), [&](const stroke& s) {
         if (aval.contains(s.bounds.toRect())) {
-            p.drawPixmap(s.bounds.toRect(), s.img);
+            logger_->trace("draw at: [{}, {}]", s.bounds.topLeft().x(),
+                           s.bounds.topLeft().y());
+            p.drawPixmap(s.bounds.topLeft(), s.img);
         }
     });
     if (!active_stroke_.img.isNull()) {
@@ -80,7 +91,8 @@ void canvas::prime_stroke(const QPointF& at)
     const auto dpr = devicePixelRatioF();
     active_stroke_.img =
         QPixmap{qRound(rect().width() * dpr), qRound(rect().height() * dpr)};
-    active_stroke_.img.fill(Qt::white);
+
+    fill_with_transparent(active_stroke_.img);
 }
 template<typename T>
 constexpr auto diff(T lhs, T rhs) -> T
@@ -94,9 +106,11 @@ void canvas::finish_stroke(const QPointF& at)
         qRound(diff(active_stroke_.start.x(), active_stroke_.end.x())),
         qRound(diff(active_stroke_.start.y(), active_stroke_.end.y())),
     };
+    fill_with_transparent(optmised);
     QPainter p{&optmised};
     p.drawPixmap(0, 0, active_stroke_.img);
-    active_stroke_.img = optmised;
+    p.end();
+    // active_stroke_.img = optmised;
 
     const QPointF top_left{
         std::min(active_stroke_.start.x(), active_stroke_.end.x()),
@@ -120,8 +134,8 @@ void canvas::add_stroke(const QPointF& at)
                                std::max(at.y(), last_pt.y())};
     const QRectF draw_size{top_left, bottom_right};
     if (!draw_size.isValid()) {
-        std::cout << "invalid pt: [" << at.x() << ", " << at.y() << "] vs ["
-                  << last_pt.x() << ", " << last_pt.y() << "]\n";
+        logger_->debug("invalid pt: [{}, {}] vs [{}, {}]", at.x(), at.y(),
+                       last_pt.x(), last_pt.y());
         return;
     }
 
