@@ -31,7 +31,6 @@ set(SRC
 
     "src/ui/main_window.cpp"
     "src/ui/canvas.cpp"
-    "src/ui/infinite_scroll.cpp"
 )
 
 set(EXE_NAME sketchy)
