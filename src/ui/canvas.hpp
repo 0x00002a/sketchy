@@ -36,7 +36,6 @@ class canvas : public QWidget {
 
 public:
     enum class mode {
-        zoom,
         move,
         draw,
 
@@ -58,7 +57,7 @@ private:
     void handle_pen_up(const QPointF& at);
     void handle_pen_move(const QPointF& at);
 
-    mode curr_mode_;
+    mode curr_mode_{mode::draw};
     float zoom_{1};
     logger_t logger_;
     QPointF last_pt;
@@ -66,5 +65,6 @@ private:
     bool pen_down_{false};
     stroke active_stroke_;
     std::vector<stroke> strokes_;
+    QPointF move_offset_;
 };
 } // namespace sketchy::ui

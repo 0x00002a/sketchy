@@ -39,15 +39,25 @@ canvas::canvas(logger_t logger)
 
 void canvas::paintEvent(QPaintEvent* e)
 {
-    const auto aval = e->region();
+    const auto bounds = e->region().boundingRect();
+    const auto aval = QRectF{bounds.topLeft() + move_offset_,
+                             bounds.bottomRight() + move_offset_};
     QPainter p{this};
-    p.fillRect(aval.boundingRect(), Qt::white);
+    p.fillRect(bounds, Qt::white);
 
-    std::for_each(strokes_.begin(), strokes_.end(), [&](const stroke& s) {
+    std::for_each(strokes_.begin(), strokes_.end(), [&, this](const stroke& s) {
         if (aval.contains(s.bounds.toRect())) {
             logger_->trace("draw at: [{}, {}]", s.bounds.topLeft().x(),
                            s.bounds.topLeft().y());
             p.drawPixmap(s.bounds.topLeft(), s.img);
+        }
+        else {
+            logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, {}]",
+                           s.bounds.topLeft().x(), s.bounds.topLeft().y(),
+                           s.bounds.bottomRight().x(),
+                           s.bounds.bottomRight().x(), aval.topLeft().x(),
+                           aval.topLeft().y(), aval.bottomRight().x(),
+                           aval.bottomRight().y());
         }
     });
     if (!active_stroke_.img.isNull()) {
@@ -62,9 +72,9 @@ void canvas::handle_pen_down(const QPointF& at)
     switch (curr_mode_) {
     case mode::draw:
         prime_stroke(at);
-        last_pt = at;
         break;
     }
+    last_pt = at;
 }
 void canvas::handle_pen_up(const QPointF& at)
 {
@@ -79,13 +89,23 @@ void canvas::handle_pen_up(const QPointF& at)
 }
 void canvas::handle_pen_move(const QPointF& at)
 {
-    switch (curr_mode_) {
-    case mode::draw:
-        if (pen_down_) {
+    if (pen_down_) {
+        switch (curr_mode_) {
+        case mode::draw:
             add_stroke(at);
-            last_pt = at;
+            break;
+        case mode::move:
+            move_offset_ += at - last_pt;
+            if (move_offset_.x() < 0) {
+                move_offset_.setX(0);
+            }
+            if (move_offset_.y() < 0) {
+                move_offset_.setY(0);
+            }
+            break;
         }
-        break;
+
+        last_pt = at;
     }
 }
 
