@@ -20,8 +20,12 @@
 #include "infinite_scroll.hpp"
 
 #include <QHBoxLayout>
+#include <qkeysequence.h>
+#include <qmainwindow.h>
+#include <qmenubar.h>
 #include <qscrollarea.h>
 #include <qstackedwidget.h>
+#include <qtoolbar.h>
 
 #include <spdlog/spdlog.h>
 
@@ -36,5 +40,33 @@ main_window::main_window()
 
     center_container_->addWidget(canvas_);
     center_container_->setCurrentWidget(canvas_);
+
+    auto* mbar = menuBar()->addMenu("tools");
+    auto* tbar = addToolBar(tr("tools"));
+    auto* move_act = new QAction{tr("move"), this};
+    auto* draw_act = new QAction{tr("draw"), this};
+
+    move_act->setShortcut(QKeySequence::fromString("S"));
+    draw_act->setShortcut(QKeySequence::fromString("D"));
+    connect(move_act, &QAction::triggered, this,
+            &main_window::switch_to_move_mode);
+    connect(draw_act, &QAction::triggered, this,
+            &main_window::switch_to_draw_mode);
+    tbar->addAction(move_act);
+    tbar->addAction(draw_act);
+    mbar->addAction(move_act);
+    mbar->addAction(draw_act);
 }
+
+void main_window::switch_to_draw_mode()
+{
+    spdlog::debug("switch mode: draw");
+    canvas_->curr_mode(canvas::mode::draw);
+}
+void main_window::switch_to_move_mode()
+{
+    spdlog::debug("switch mode: move");
+    canvas_->curr_mode(canvas::mode::move);
+}
+
 } // namespace sketchy::ui

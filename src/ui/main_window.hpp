@@ -22,14 +22,20 @@
 class QStackedWidget;
 
 namespace sketchy::ui {
+class canvas;
 
 class main_window : public QMainWindow {
+    Q_OBJECT
 public:
     main_window();
 
+private slots:
+    void switch_to_draw_mode();
+    void switch_to_move_mode();
+
 private:
     QStackedWidget* center_container_;
-    QWidget* canvas_;
+    canvas* canvas_;
 };
 
 } // namespace sketchy::ui

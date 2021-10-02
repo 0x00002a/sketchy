@@ -16,6 +16,7 @@
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "canvas.hpp"
+#include "qt_fmt.hpp"
 
 #include <QMouseEvent>
 
@@ -46,10 +47,10 @@ void canvas::paintEvent(QPaintEvent* e)
     p.fillRect(bounds, Qt::white);
 
     std::for_each(strokes_.begin(), strokes_.end(), [&, this](const stroke& s) {
-        if (aval.contains(s.bounds.toRect())) {
-            logger_->trace("draw at: [{}, {}]", s.bounds.topLeft().x(),
-                           s.bounds.topLeft().y());
-            p.drawPixmap(s.bounds.topLeft(), s.img);
+        if (aval.contains(s.bounds.topLeft()) ||
+            aval.contains(s.bounds.bottomRight())) {
+            logger_->trace("draw at: [{}]", s.bounds.topLeft());
+            p.drawPixmap(s.bounds.topLeft() - move_offset_, s.img);
         }
         else {
             logger_->trace("[{}, {}, {}, {}] out of bounds of [{}, {}, {}, {}]",
@@ -74,7 +75,7 @@ void canvas::handle_pen_down(const QPointF& at)
         prime_stroke(at);
         break;
     }
-    last_pt = at;
+    last_pt = at + move_offset_;
 }
 void canvas::handle_pen_up(const QPointF& at)
 {
@@ -95,13 +96,16 @@ void canvas::handle_pen_move(const QPointF& at)
             add_stroke(at);
             break;
         case mode::move:
-            move_offset_ += at - last_pt;
+            const auto diff = last_pt - at;
+            move_offset_ += diff;
             if (move_offset_.x() < 0) {
                 move_offset_.setX(0);
             }
             if (move_offset_.y() < 0) {
                 move_offset_.setY(0);
             }
+            logger_->debug("move: [{}]", diff);
+            update();
             break;
         }
 
@@ -114,15 +118,16 @@ bool canvas::event(QEvent* e)
     if (e->isPointerEvent()) {
         auto* pe = static_cast<QPointerEvent*>(e);
         for (const auto& pt : pe->points()) {
+            const auto pos = pt.position() + move_offset_;
             switch (pt.state()) {
             case QEventPoint::State::Pressed:
-                handle_pen_down(pt.position());
+                handle_pen_down(pos);
                 break;
             case QEventPoint::State::Released:
-                handle_pen_up(pt.position());
+                handle_pen_up(pos);
                 break;
             case QEventPoint::State::Updated:
-                handle_pen_move(pt.position());
+                handle_pen_move(pos);
                 break;
             default:
                 break;

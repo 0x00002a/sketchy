@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with sketchy.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <spdlog/logger.h>
+#pragma once
 
+#include <spdlog/logger.h>
 
 namespace sketchy {
 
 using logger_t = std::shared_ptr<spdlog::logger>;
 
 }
-
