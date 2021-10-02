@@ -144,6 +144,10 @@ bool canvas::event(QEvent* e)
         auto* pe = static_cast<QPointerEvent*>(e);
         for (const auto& pt : pe->points()) {
             const auto pos = pt.position() + move_offset_;
+            if (pen_down_) {
+                curr_weight_ = pt.pressure();
+                logger_->debug("recorded pressure: {}", curr_weight_);
+            }
             switch (pt.state()) {
             case QEventPoint::State::Pressed:
                 handle_pen_down(pos);
@@ -183,19 +187,16 @@ void canvas::finish_stroke(const QPointF& at)
 }
 void canvas::add_stroke(const QPointF& at)
 {
-    auto max_pen_radius = 20;
 
     const auto dpr = devicePixelRatioF();
     active_stroke_.update_bounds(at);
     active_stroke_.append({
         .start = last_pt,
         .end = at,
-        .weight = 1.0,
+        .weight = curr_weight_,
         .colour = Qt::black,
     });
 
-    /*update(QRect{last_pt.toPoint(), at.toPoint()}.normalized().adjusted(
-        -max_pen_radius, -max_pen_radius, max_pen_radius, max_pen_radius));*/
     update(active_stroke_.bounds.toRect().normalized());
 }
 

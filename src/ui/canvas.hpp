@@ -66,5 +66,6 @@ private:
     std::vector<stroke> strokes_;
     std::vector<QPixmap> raster_strokes_;
     QPointF move_offset_;
+    float curr_weight_{0};
 };
 } // namespace sketchy::ui
