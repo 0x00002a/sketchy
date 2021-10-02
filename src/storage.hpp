@@ -26,60 +26,28 @@
 
 namespace sketchy {
 namespace detail {
-class stroke : public QGraphicsItem {
+class stroke {
 public:
-    class line : public QGraphicsLineItem {
-    public:
-        line(QPointF start, QPointF end, float weight, QColor colour)
-            : start{start}, end{end}, weight{weight}, colour{colour}
-        {
-        }
-        QPointF start;
-        QPointF end;
-        float weight{0};
-        QColor colour;
-
-        auto operator==(const line& l) const -> bool
-        {
-            return l.start == start && l.end == end && l.weight == weight &&
-                   l.colour == colour;
-        }
-        auto boundingRect() const -> QRectF override
-        {
-            return QRectF{start, end};
-        }
-        void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
-                   QWidget* w) override;
-    };
-
-    QPointF offset;
-
-    auto boundingRect() const -> QRectF override { return bounds_; }
-
-    void update_bounds(const QPointF& at);
-    /// Erases parts intersecting. Returns true if any erased
-    auto handle_erase(const QPainterPath& area) -> bool;
-
-    void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
-               QWidget* w) override;
-    void append(line* l);
-
-    auto parts() const -> const std::vector<line*>& { return {}; }
-    void set_parts(const std::vector<line>& p) {}
-
-    auto operator==(const stroke& s) const -> bool
+    stroke() = default;
+    stroke(QPointF start, QPointF end, float weight, QColor colour)
+        : start{start}, end{end}, weight{weight}, colour{colour}
     {
-        return s.parts_ == parts_;
+    }
+
+    QPointF start;
+    QPointF end;
+    float weight{0};
+    QColor colour;
+
+    auto operator==(const stroke& l) const -> bool
+    {
+        return l.start == start && l.end == end && l.weight == weight &&
+               l.colour == colour;
     }
 
 private:
-    QRectF bounds_;
-    std::vector<line*> parts_;
-    bool img_updated_{false};
-    mutable QPixmap cached_img_;
 };
 } // namespace detail
-
 
 auto to_json(const std::vector<detail::stroke>& obj) -> std::string;
 

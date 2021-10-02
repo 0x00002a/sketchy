@@ -39,16 +39,7 @@ void fill_with_transparent(QPixmap& m)
     c.setAlpha(0);
     m.fill(c);
 }
-auto rasterise(const sketchy::detail::stroke& s) -> QPixmap
-{
-    /*assert(s.bounds.isValid());
-    QPixmap stroke_raster{s.bounds.size().toSize()};
-    fill_with_transparent(stroke_raster);
-    QPainter p{&stroke_raster};
-    s.paint(p);
-    p.end();
-    return stroke_raster;*/
-}
+
 } // namespace
 namespace sketchy::ui {
 
@@ -65,14 +56,12 @@ canvas::canvas(logger_t logger)
     viewport_->setTabletTracking(true);
 }
 
-void canvas::set_strokes(const std::vector<stroke>& s)
+void canvas::set_strokes(const std::vector<detail::stroke>& s)
 {
-    /*strokes_ = s;
-    raster_strokes_.clear();
-    raster_strokes_.reserve(s.size());
-    std::transform(strokes_.begin(), strokes_.end(),
-                   std::back_inserter(raster_strokes_), rasterise);*/
-    update();
+    scene_.clear();
+    std::for_each(s.begin(), s.end(),
+                  [this](const auto& ds) { scene_.addItem(new stroke{ds}); });
+    scene_.update();
 }
 void canvas::curr_mode(mode m) { curr_mode_ = m; }
 void canvas::handle_pen_down(const QPointF& at)
@@ -187,41 +176,48 @@ void canvas::on_canvas_event(QPointerEvent* pe)
         }
     }
 }
-void canvas::prime_stroke(const QPointF& at)
-{
-    assert(!active_stroke_);
-    active_stroke_ = new stroke;
-    // active_stroke_->offset = move_offset_;
-    scene_.addItem(active_stroke_);
-}
+void canvas::prime_stroke(const QPointF& at) {}
 template<typename T>
 constexpr auto diff(T lhs, T rhs) -> T
 {
     return lhs > rhs ? lhs - rhs : rhs - lhs;
 }
 
-void canvas::finish_stroke(const QPointF& at)
-{
-    assert(active_stroke_);
-    active_stroke_->update_bounds(at);
-    // raster_strokes_.emplace_back(rasterise(active_stroke_));
-    strokes_.emplace_back(active_stroke_);
-    active_stroke_ = nullptr;
-}
+void canvas::finish_stroke(const QPointF& at) {}
 void canvas::add_stroke(const QPointF& at)
 {
-    assert(active_stroke_);
-    const auto dpr = devicePixelRatioF();
-    active_stroke_->update_bounds(at);
-
-    active_stroke_->append(new stroke::line{
+    auto* s = new stroke{{
         last_pt,
         at,
         curr_weight_,
         Qt::black,
-    });
+    }};
+
+    scene_.addItem(s);
     logger_->trace("add line: [{}] -> [{}]", last_pt, at);
-    scene_.update(active_stroke_->boundingRect());
+    scene_.update(s->boundingRect());
 }
 
+void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+                           QWidget* w)
+{
+    to->save();
+    QPen p{data_.colour};
+    p.setWidthF(data_.weight);
+
+    to->setPen(p);
+    to->drawLine(data_.start, data_.end);
+    to->restore();
+}
+
+auto canvas::strokes() const -> std::vector<detail::stroke>
+{
+    std::vector<detail::stroke> strokes;
+    for (const auto* w : scene_.items()) {
+        if (auto* s = dynamic_cast<const stroke*>(w)) {
+            strokes.emplace_back(s->underlying());
+        }
+    }
+    return strokes;
+}
 } // namespace sketchy::ui

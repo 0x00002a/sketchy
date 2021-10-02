@@ -55,7 +55,22 @@ signals:
 };
 class canvas : public QWidget {
     Q_OBJECT
-    using stroke = detail::stroke;
+    class stroke : public QGraphicsItem {
+    public:
+        stroke(detail::stroke data) : data_{std::move(data)} {}
+        auto boundingRect() const -> QRectF override
+        {
+            return QRectF{data_.start, data_.end};
+        }
+
+        void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
+                   QWidget* w) override;
+
+        auto underlying() const -> const detail::stroke& { return data_; }
+
+    private:
+        detail::stroke data_;
+    };
 
 public:
     enum class mode {
@@ -66,8 +81,8 @@ public:
 
     void curr_mode(mode m);
 
-    auto strokes() const -> const std::vector<stroke>& { return {}; }
-    void set_strokes(const std::vector<stroke>&);
+    auto strokes() const -> std::vector<detail::stroke>;
+    void set_strokes(const std::vector<detail::stroke>&);
 
 private slots:
     void on_canvas_event(QPointerEvent* e);
@@ -88,9 +103,6 @@ private:
     QPointF last_pt;
     QPen curr_pen_;
     bool pen_down_{false};
-    stroke* active_stroke_{nullptr};
-    std::vector<stroke*> strokes_;
-    std::vector<QPixmap> raster_strokes_;
     QPointF move_offset_;
     canvas_scene scene_;
     canvas_view* viewport_;
