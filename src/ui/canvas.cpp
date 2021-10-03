@@ -159,6 +159,7 @@ bool canvas_view::event(QEvent* e)
 {
     if (e->isPointerEvent()) {
         auto* pe = static_cast<QPointerEvent*>(e);
+
         return QApplication::sendEvent(scene(), e);
     }
 
@@ -213,6 +214,7 @@ void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
                            QWidget* w)
 {
     to->save();
+    to->setRenderHint(QPainter::Antialiasing);
     QPen p{data_.colour};
     p.setWidthF(data_.weight);
 
