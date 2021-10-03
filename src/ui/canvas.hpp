@@ -58,10 +58,8 @@ class canvas : public QWidget {
     class stroke : public QGraphicsItem {
     public:
         stroke(detail::stroke data) : data_{std::move(data)} {}
-        auto boundingRect() const -> QRectF override
-        {
-            return QRectF{data_.start, data_.end};
-        }
+        auto boundingRect() const -> QRectF override;
+        
 
         void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
                    QWidget* w) override;
