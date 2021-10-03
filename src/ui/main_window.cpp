@@ -55,15 +55,20 @@ main_window::main_window(logger_t logger)
 
     auto* move_act = new QAction{tr("Move"), this};
     auto* draw_act = new QAction{tr("Draw"), this};
+    auto* erase_act = new QAction{tr("Erase"), this};
 
     move_act->setShortcut(QKeySequence::fromString("S"));
     draw_act->setShortcut(QKeySequence::fromString("D"));
+    erase_act->setShortcut(QKeySequence::fromString("E"));
     connect(move_act, &QAction::triggered, this,
             &main_window::switch_to_move_mode);
     connect(draw_act, &QAction::triggered, this,
             &main_window::switch_to_draw_mode);
+    connect(erase_act, &QAction::triggered, this,
+            &main_window::switch_to_erase_mode);
     tbar->addAction(move_act);
     tbar->addAction(draw_act);
+    tbar->addAction(erase_act);
 
     auto* save_act = new QAction{tr("Save"), this};
     save_act->setShortcut(QKeySequence::Save);
@@ -137,5 +142,9 @@ void main_window::switch_to_move_mode()
     logger_->debug("switch mode: move");
     canvas_->curr_mode(canvas::mode::move);
 }
-
+void main_window::switch_to_erase_mode()
+{
+    logger_->debug("switch mode: erase");
+    canvas_->curr_mode(canvas::mode::erase);
+}
 } // namespace sketchy::ui

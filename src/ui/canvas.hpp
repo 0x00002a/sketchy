@@ -70,6 +70,7 @@ public:
     enum class mode {
         move,
         draw,
+        erase,
     };
     explicit canvas(logger_t logger);
 
@@ -87,6 +88,11 @@ private:
     void prime_stroke(const QPointF& at);
     void finish_stroke(const QPointF& at);
 
+    void handle_erase(const QPointF& at);
+    auto eraser_bounds(const QPointF& center) const -> QPainterPath;
+    auto eraser_cursor() const -> QCursor;
+    auto erasor_cursor_bitmap() const -> QBitmap;
+
     void handle_pen_down(const QPointF& at);
     void handle_pen_up(const QPointF& at);
     void handle_pen_move(const QPointF& at);
@@ -99,5 +105,6 @@ private:
     canvas_scene scene_;
     canvas_view* viewport_;
     float curr_weight_{0};
+    float weight_scaling_{10};
 };
 } // namespace sketchy::ui

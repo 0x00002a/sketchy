@@ -49,6 +49,7 @@ canvas::canvas(logger_t logger)
       curr_pen_{Qt::black},
       viewport_{new canvas_view{&scene_}}
 {
+    logger_->trace("canvas::canvas()");
     scene_.setBackgroundBrush(QBrush{Qt::white});
     (new QVBoxLayout{this})->addWidget(viewport_);
     connect(&scene_, &canvas_scene::on_pointer_event, this,
@@ -78,6 +79,10 @@ void canvas::handle_pen_down(const QPointF& at)
         QApplication::setOverrideCursor(
             QCursor{Qt::CursorShape::DragMoveCursor});
         break;
+    case mode::erase:
+        QApplication::setOverrideCursor(eraser_cursor());
+        handle_erase(at);
+        break;
     }
     last_pt = at;
 }
@@ -102,6 +107,9 @@ void canvas::handle_pen_move(const QPointF& at)
         case mode::draw:
             add_stroke(at);
             break;
+        case mode::erase:
+            handle_erase(at);
+            break;
         case mode::move:
             const auto diff = last_pt - at;
             logger_->trace("move: [{}]", diff);
@@ -121,6 +129,51 @@ void canvas::handle_pen_move(const QPointF& at)
         last_pt = at;
     }
 }
+auto canvas::eraser_cursor() const -> QCursor
+{
+    return QCursor{erasor_cursor_bitmap()};
+}
+auto canvas::erasor_cursor_bitmap() const -> QBitmap
+{
+    const auto size = QSizeF{curr_weight_ * 2, curr_weight_ * 2};
+    QBitmap img{size.toSize()};
+    fill_with_transparent(img);
+    const auto path =
+        eraser_bounds(QPointF(size.width() / 2, size.height() / 2));
+    QPainter p{&img};
+    QPen pen;
+    pen.setColor(Qt::black);
+    pen.setWidthF(1);
+    p.setPen(pen);
+    p.drawPath(path);
+    p.end();
+    return img;
+}
+
+auto canvas::eraser_bounds(const QPointF& center) const -> QPainterPath
+{
+    QPainterPath erase_circle;
+    const auto r = curr_weight_;
+    erase_circle.addEllipse(center, r, r);
+    return erase_circle;
+}
+void canvas::handle_erase(const QPointF& at)
+{
+    logger_->trace("handle_erase()");
+    const auto area = eraser_bounds(at);
+    const auto to_remove = scene_.items(area);
+    if (!to_remove.empty()) {
+        std::for_each(to_remove.begin(), to_remove.end(), [this](auto* item) {
+            scene_.removeItem(item);
+            delete item;
+        });
+        logger_->debug("erased {} items", to_remove.size());
+    }
+    else {
+        logger_->trace("nothing to remove at: [{}]", at);
+    }
+}
+
 void canvas_view::mouseReleaseEvent(QMouseEvent* e)
 {
     QApplication::sendEvent(scene(), e);
@@ -170,7 +223,7 @@ void canvas::on_canvas_event(QPointerEvent* pe)
     for (const auto& pt : pe->points()) {
         const auto pos = viewport_->mapToScene(pt.position().toPoint());
         if (pen_down_) {
-            curr_weight_ = pt.pressure() * 10;
+            curr_weight_ = pt.pressure() * weight_scaling_;
             logger_->debug("recorded pressure: {}", curr_weight_);
         }
         switch (pt.state()) {
