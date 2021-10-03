@@ -10,7 +10,7 @@ How to build
 
 You will need:
 
-* Qt6 
+* Qt6 (base + svg)
 * boost 
 * conan (``pip install conan``)
 
