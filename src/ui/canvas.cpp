@@ -62,6 +62,12 @@ canvas::canvas(logger_t logger)
     viewport_->setTabletTracking(true);
 }
 
+void canvas::print_area(QPainter& to, const QRectF& area) const
+{
+    viewport_->render(&to, area);
+}
+auto canvas::scene_size() const -> QSizeF { return scene_.sceneRect().size(); }
+
 void canvas::set_strokes(const std::vector<detail::stroke>& s)
 {
     scene_.clear();

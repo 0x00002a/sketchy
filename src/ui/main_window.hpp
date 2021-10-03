@@ -40,6 +40,8 @@ private slots:
     void on_save();
     void on_load_from(const QString&);
     void on_load_from_clicked();
+    void on_export_all_svg();
+    void export_all_svg_to(const QString&) const;
 
 private:
     logger_t logger_;

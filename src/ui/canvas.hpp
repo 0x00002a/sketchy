@@ -81,6 +81,9 @@ public:
     auto strokes() const -> std::vector<detail::stroke>;
     void set_strokes(const std::vector<detail::stroke>&);
 
+    void print_area(QPainter& to, const QRectF& area) const;
+    auto scene_size() const -> QSizeF;
+
 private slots:
     void on_canvas_event(QPointerEvent* e);
     void on_mouse_enter() const;

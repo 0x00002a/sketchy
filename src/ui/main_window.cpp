@@ -31,6 +31,7 @@
 #include <qscreen.h>
 #include <qscrollarea.h>
 #include <qstackedwidget.h>
+#include <qsvggenerator.h>
 #include <qtoolbar.h>
 
 #include <spdlog/spdlog.h>
@@ -84,11 +85,42 @@ main_window::main_window(logger_t logger)
     connect(load_act, &QAction::triggered, this,
             &main_window::on_load_from_clicked);
 
+    auto* export_act = new QAction{tr("Export"), this};
+    export_act->setShortcut(QKeySequence::fromString("Ctrl-e"));
+    connect(export_act, &QAction::triggered, this,
+            &main_window::on_export_all_svg);
+
     auto* mfile = menuBar()->addMenu("&File");
     mfile->addAction(save_act);
     mfile->addAction(save_as_act);
     mfile->addSeparator();
     mfile->addAction(load_act);
+    mfile->addSeparator();
+    mfile->addAction(export_act);
+}
+
+void main_window::export_all_svg_to(const QString& path) const
+{
+    QSvgGenerator gen;
+    gen.setFileName(path);
+    gen.setSize(canvas_->scene_size().toSize());
+    QFile out{path};
+    out.open(QFile::WriteOnly);
+    gen.setOutputDevice(&out);
+
+    QPainter p{&gen};
+    canvas_->print_area(p, QRectF{QPointF{0, 0}, canvas_->scene_size()});
+    p.end();
+}
+
+void main_window::on_export_all_svg()
+{
+    auto* dialog = new QFileDialog{this};
+    dialog->setAcceptMode(QFileDialog::AcceptSave);
+    dialog->setFileMode(QFileDialog::FileMode::AnyFile);
+    connect(dialog, &QFileDialog::fileSelected, this,
+            &main_window::export_all_svg_to);
+    dialog->open();
 }
 void main_window::on_save_as(const QString& p)
 {
