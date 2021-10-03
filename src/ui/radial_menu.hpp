@@ -21,13 +21,20 @@
 #include <qgraphicsitem.h>
 #include <qgraphicsscene.h>
 #include <qgraphicsview.h>
+#include <qmenu.h>
+#include <qtmetamacros.h>
 #include <qwidget.h>
 
 namespace sketchy::ui {
 
-class radial_menu_segment : public QGraphicsItem {
+class radial_menu_segment : public QObject, public QGraphicsItem {
+    Q_OBJECT
 public:
+    Q_INTERFACES(QGraphicsItem)
+    Q_PROPERTY(QPointF pos WRITE setPos READ pos)
     explicit radial_menu_segment(QAction* act);
+
+    auto diameter() const -> float { return bounds_.height(); }
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* e) override;
@@ -38,7 +45,8 @@ private:
     QAction* act_;
     QRectF bounds_;
 };
-class radial_menu : public QWidget {
+class radial_menu : public QMenu {
+    Q_OBJECT
     struct segment {
         QAction* act;
     };
@@ -49,6 +57,15 @@ public:
     void add_action(QAction* act);
 
     void set_radius(float r) { radius_ = r; }
+
+    auto sizeHint() const -> QSize override;
+
+public slots:
+    void show_menu();
+    void hide_menu();
+
+protected:
+    void paintEvent(QPaintEvent* ev) override;
 
 private:
     auto calc_segment_pos(int num) const -> QPointF;

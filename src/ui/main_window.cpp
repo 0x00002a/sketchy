@@ -52,12 +52,8 @@ main_window::main_window(logger_t logger)
 
     center_container_->addWidget(canvas_);
     center_container_->setCurrentWidget(canvas_);
-    auto* c = new radial_menu;
-    c->add_action(new QAction{tr("test1"), this});
-    c->add_action(new QAction{tr("test2"), this});
-    c->add_action(new QAction{tr("test3"), this});
-    center_container_->addWidget(c);
-    center_container_->setCurrentWidget(c);
+    connect(canvas_, &canvas::content_menu_wanted, this,
+            &main_window::on_radial_menu_wanted);
 
     auto* tbar = addToolBar(tr("tools"));
 
@@ -77,6 +73,9 @@ main_window::main_window(logger_t logger)
     tbar->addAction(move_act);
     tbar->addAction(draw_act);
     tbar->addAction(erase_act);
+    tools_acts_.emplace_back(move_act);
+    tools_acts_.emplace_back(draw_act);
+    tools_acts_.emplace_back(erase_act);
 
     auto* save_act = new QAction{tr("Save"), this};
     save_act->setShortcut(QKeySequence::Save);
@@ -106,6 +105,7 @@ main_window::main_window(logger_t logger)
     mfile->addAction(export_act);
 }
 
+void on_radial_menu_wanted(const QPointF&) {}
 void main_window::export_all_svg_to(const QString& path) const
 {
     QSvgGenerator gen;
@@ -185,5 +185,24 @@ void main_window::switch_to_erase_mode()
 {
     logger_->debug("switch mode: erase");
     canvas_->curr_mode(canvas::mode::erase);
+}
+void main_window::on_radial_menu_wanted(const QPointF& at)
+{
+    logger_->debug("radial menu requested");
+    if (!tools_menu_) {
+        tools_menu_ = new radial_menu;
+        std::for_each(tools_acts_.begin(), tools_acts_.end(),
+                      [this](auto* act) { tools_menu_->add_action(act); });
+        tools_menu_->setMinimumSize(tools_menu_->sizeHint());
+    }
+    tools_menu_->popup(at.toPoint());
+}
+
+auto main_window::make_action(const QString& txt,
+                              const std::function<void()>& act) -> QAction*
+{
+    auto* obj = new QAction{txt, this};
+    connect(obj, &QAction::triggered, this, act);
+    return obj;
 }
 } // namespace sketchy::ui

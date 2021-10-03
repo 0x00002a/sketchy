@@ -254,6 +254,13 @@ bool canvas_view::event(QEvent* e)
 }
 void canvas::on_canvas_event(QPointerEvent* pe)
 {
+    if (pe->deviceType() == QInputDevice::DeviceType::Mouse) {
+        if (auto* ev = dynamic_cast<QMouseEvent*>(pe)) {
+            if (ev->button() == Qt::MouseButton::RightButton) {
+                emit content_menu_wanted(ev->globalPosition());
+            }
+        }
+    }
     for (const auto& pt : pe->points()) {
         const auto pos = viewport_->mapToScene(pt.position().toPoint());
         if (pen_down_) {

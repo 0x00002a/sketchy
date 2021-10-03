@@ -83,6 +83,8 @@ public:
 
     void print_area(QPainter& to, const QRectF& area) const;
     auto scene_size() const -> QSizeF;
+signals:
+    void content_menu_wanted(const QPointF&);
 
 private slots:
     void on_canvas_event(QPointerEvent* e);

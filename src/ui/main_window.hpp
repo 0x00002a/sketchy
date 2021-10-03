@@ -25,6 +25,7 @@ class QStackedWidget;
 
 namespace sketchy::ui {
 class canvas;
+class radial_menu;
 
 class main_window : public QMainWindow {
     Q_OBJECT
@@ -42,12 +43,18 @@ private slots:
     void on_load_from_clicked();
     void on_export_all_svg();
     void export_all_svg_to(const QString&) const;
+    void on_radial_menu_wanted(const QPointF&);
 
 private:
+    auto make_action(const QString& txt, const std::function<void()>& act)
+        -> QAction*;
+
     logger_t logger_;
     QStackedWidget* center_container_;
     canvas* canvas_;
+    radial_menu* tools_menu_{nullptr};
     QString save_path_;
+    std::vector<QAction*> tools_acts_;
 };
 
 } // namespace sketchy::ui

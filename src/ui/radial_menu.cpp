@@ -23,6 +23,7 @@
 #include <qmath.h>
 #include <qpainter.h>
 #include <qpainterpath.h>
+#include <qpropertyanimation.h>
 
 namespace sketchy::ui {
 auto max_rect(const QRectF& r) -> QRectF
@@ -55,16 +56,37 @@ radial_menu::radial_menu() : viewport_{new QGraphicsView{this}}
 {
     auto* layout = new QVBoxLayout{this};
     layout->addWidget(viewport_);
+    QBrush b;
+    b.setColor(QColor{"#00000000"});
+    scene_.setBackgroundBrush(b);
+    viewport_->setBackgroundBrush(b);
+    setAutoFillBackground(false);
 
     viewport_->setScene(&scene_);
+    connect(this, &QMenu::aboutToShow, this, &radial_menu::show_menu);
+    connect(this, &QMenu::aboutToHide, this, &radial_menu::hide_menu);
+    connect(&scene_, &QGraphicsScene::sceneRectChanged, this,
+            [this](const QRectF& r) {
+                setMinimumSize(r.size().toSize() + QSize{40, 40});
+            });
 }
 
+auto radial_menu::sizeHint() const -> QSize
+{
+    const QSize base{40, 40};
+    if (parts_.empty()) {
+        return base;
+    }
+    else {
+        const int dim = parts_.at(0)->diameter();
+        return base + QSize{dim, dim};
+    }
+}
 void radial_menu::add_action(QAction* act)
 {
     auto* seg = new radial_menu_segment{act};
     scene_.addItem(seg);
     parts_.emplace_back(seg);
-    relayout();
 }
 void radial_menu::relayout() const
 {
@@ -72,14 +94,27 @@ void radial_menu::relayout() const
         parts_.at(i)->setPos(calc_segment_pos(i));
     }
 }
+void radial_menu::show_menu()
+{
+    const auto dims = min_rect(rect());
+    for (auto i = 0; i != parts_.size(); ++i) {
+        auto* ani = new QPropertyAnimation{parts_.at(i), "pos", this};
+        ani->setStartValue(dims.center());
+        ani->setEndValue(calc_segment_pos(i));
+        ani->setDuration(200);
+        ani->start();
+    }
+}
+void radial_menu::hide_menu() {}
 
 auto radial_menu::calc_segment_pos(int num) const -> QPointF
 {
     const auto dims = min_rect(rect());
-    QLineF baseline{dims.center(),
-                    dims.center() + QPointF{dims.width() / 2, 0}};
+    QLineF baseline{dims.center(), dims.center() + QPointF{70, 0}};
     const float per_seg = 360.0 / parts_.size();
     baseline.setAngle(per_seg * num);
     return baseline.p2();
 }
+
+void radial_menu::paintEvent(QPaintEvent* ev) {}
 } // namespace sketchy::ui
