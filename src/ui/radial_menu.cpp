@@ -21,6 +21,7 @@
 #include <qevent.h>
 #include <qgraphicsitem.h>
 #include <qmath.h>
+#include <qnamespace.h>
 #include <qpainter.h>
 #include <qpainterpath.h>
 #include <qpropertyanimation.h>
@@ -38,12 +39,17 @@ auto min_rect(const QRectF& r) -> QRectF
 }
 radial_menu_segment::radial_menu_segment(QAction* act) : act_{act}
 {
-    auto* lbl = new QGraphicsTextItem{act->text(), this};
+    auto* lbl = new QGraphicsTextItem{act->text()};
     const auto margin = 10;
     bounds_ = max_rect(
         lbl->boundingRect().adjusted(-margin, -margin, margin, margin));
     auto* boundry = new QGraphicsEllipseItem{bounds_, this};
+    lbl->setParentItem(boundry);
     lbl->setPos(bounds_.center() - lbl->boundingRect().center());
+    QPen bounds_pen;
+    bounds_pen.setColor(Qt::transparent);
+    boundry->setPen(bounds_pen);
+    boundry->setBrush(QColor{"#0b0b0bbb"});
 }
 void radial_menu_segment::mousePressEvent(QGraphicsSceneMouseEvent* ev)
 {
@@ -60,6 +66,8 @@ radial_menu::radial_menu() : viewport_{std::make_unique<QGraphicsView>()}
     viewport_->setScene(&scene_);
     viewport_->setAttribute(Qt::WA_TranslucentBackground);
     viewport_->setStyleSheet(" QGraphicsView { background: transparent; } ");
+    viewport_->setRenderHints(QPainter::Antialiasing |
+                              QPainter::SmoothPixmapTransform);
 }
 
 auto radial_menu::sizeHint() const -> QSize
@@ -85,10 +93,11 @@ void radial_menu::show_menu(const QPointF& at)
     const auto dims = min_rect(bounds());
     const auto center = bounds().center();
     const auto sdims = scene_.sceneRect();
-    viewport_->setGeometry(QRect{QPointF{at.x() - sdims.size().width() / 2,
-                                         at.y() - sdims.size().height() / 2}
-                                     .toPoint(),
-                                 QSize{sdims.size().toSize()}});
+    viewport_->setGeometry(
+        QRect{QPointF{at.x() - sdims.size().width() / 2 - 10,
+                      at.y() - sdims.size().height() / 2 - 10}
+                  .toPoint(),
+              QSize{sdims.size().toSize()} + QSize{20, 20}});
     viewport_->show();
     viewport_->activateWindow();
     for (auto i = 0; i != parts_.size(); ++i) {
@@ -97,7 +106,7 @@ void radial_menu::show_menu(const QPointF& at)
             viewport_->mapToScene(viewport_->mapFromGlobal(at).toPoint());
         ani->setStartValue(start);
         ani->setEndValue(calc_segment_pos(i));
-        ani->setDuration(200);
+        ani->setDuration(50);
         ani->start();
     }
 }
