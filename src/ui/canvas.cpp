@@ -207,7 +207,6 @@ void canvas::add_stroke(const QPointF& at)
 
     scene_.addItem(s);
     logger_->trace("add line: [{}] -> [{}]", last_pt, at);
-    // scene_.update(s->boundingRect().marginsAdded({20, 20, 20, 20}));
 }
 
 void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
@@ -220,6 +219,7 @@ void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
 
     to->setPen(p);
     to->drawLine(data_.start, data_.end);
+
     to->restore();
 }
 auto canvas::stroke::boundingRect() const -> QRectF
@@ -228,7 +228,8 @@ auto canvas::stroke::boundingRect() const -> QRectF
                      std::min(data_.start.y(), data_.end.y())};
     const QPointF br{std::max(data_.start.x(), data_.end.x()),
                      std::max(data_.start.y(), data_.end.y())};
-    return QRectF{tl, br};
+    return QRectF{tl, br}.adjusted(-data_.weight, -data_.weight, data_.weight,
+                                   data_.weight);
 }
 
 auto canvas::strokes() const -> std::vector<detail::stroke>
