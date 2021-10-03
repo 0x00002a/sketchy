@@ -19,6 +19,7 @@
 
 #include <boost/system/detail/errc.hpp>
 #include <qevent.h>
+#include <qgraphicsitem.h>
 #include <qgraphicsview.h>
 #include <qpainter.h>
 #include <qpoint.h>
@@ -55,14 +56,9 @@ signals:
 };
 class canvas : public QWidget {
     Q_OBJECT
-    class stroke : public QGraphicsItem {
+    class stroke : public QGraphicsLineItem {
     public:
-        stroke(detail::stroke data) : data_{std::move(data)} {}
-        auto boundingRect() const -> QRectF override;
-        
-
-        void paint(QPainter* to, const QStyleOptionGraphicsItem* option,
-                   QWidget* w) override;
+        stroke(detail::stroke data);
 
         auto underlying() const -> const detail::stroke& { return data_; }
 

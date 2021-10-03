@@ -170,7 +170,7 @@ void canvas::on_canvas_event(QPointerEvent* pe)
     for (const auto& pt : pe->points()) {
         const auto pos = viewport_->mapToScene(pt.position().toPoint());
         if (pen_down_) {
-            curr_weight_ = pt.pressure();
+            curr_weight_ = pt.pressure() * 10;
             logger_->debug("recorded pressure: {}", curr_weight_);
         }
         switch (pt.state()) {
@@ -209,29 +209,6 @@ void canvas::add_stroke(const QPointF& at)
     logger_->trace("add line: [{}] -> [{}]", last_pt, at);
 }
 
-void canvas::stroke::paint(QPainter* to, const QStyleOptionGraphicsItem* option,
-                           QWidget* w)
-{
-    to->save();
-    to->setRenderHint(QPainter::Antialiasing);
-    QPen p{data_.colour};
-    p.setWidthF(data_.weight);
-
-    to->setPen(p);
-    to->drawLine(data_.start, data_.end);
-
-    to->restore();
-}
-auto canvas::stroke::boundingRect() const -> QRectF
-{
-    const QPointF tl{std::min(data_.start.x(), data_.end.x()),
-                     std::min(data_.start.y(), data_.end.y())};
-    const QPointF br{std::max(data_.start.x(), data_.end.x()),
-                     std::max(data_.start.y(), data_.end.y())};
-    return QRectF{tl, br}.adjusted(-data_.weight, -data_.weight, data_.weight,
-                                   data_.weight);
-}
-
 auto canvas::strokes() const -> std::vector<detail::stroke>
 {
     std::vector<detail::stroke> strokes;
@@ -241,5 +218,18 @@ auto canvas::strokes() const -> std::vector<detail::stroke>
         }
     }
     return strokes;
+}
+
+canvas::stroke::stroke(detail::stroke data) : data_{std::move(data)}
+{
+    setLine(QLineF{data_.start, data_.end});
+    QPen p;
+    p.setColor(data_.colour);
+    p.setWidthF(data_.weight);
+    p.setMiterLimit(8);
+    p.setCapStyle(Qt::PenCapStyle::RoundCap);
+    p.setStyle(Qt::PenStyle::SolidLine);
+    p.setJoinStyle(Qt::PenJoinStyle::RoundJoin);
+    setPen(p);
 }
 } // namespace sketchy::ui

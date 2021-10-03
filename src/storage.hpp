@@ -36,7 +36,7 @@ public:
 
     QPointF start;
     QPointF end;
-    float weight{0};
+    float weight;
     QColor colour;
 
     auto operator==(const stroke& l) const -> bool
