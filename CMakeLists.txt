@@ -8,7 +8,7 @@ option(SKETCHY_BUILD_TESTS "Whether to build the tests" OFF)
 
 include(${CMAKE_CURRENT_LIST_DIR}/conan.cmake)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core Svg)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -50,7 +50,7 @@ endif()
 
 find_package(spdlog REQUIRED)
 
-target_link_libraries(${LIB_NAME} PUBLIC Qt6::Widgets Qt6::Core Qt6::Svg spdlog::spdlog cronch)
+target_link_libraries(${LIB_NAME} PUBLIC Qt6::Widgets Qt6::Core spdlog::spdlog cronch)
 target_include_directories(${LIB_NAME} PUBLIC "./src")
 
 if (SKETCHY_BUILD_TESTS) 
