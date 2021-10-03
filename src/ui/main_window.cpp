@@ -195,7 +195,7 @@ void main_window::on_radial_menu_wanted(const QPointF& at)
                       [this](auto* act) { tools_menu_->add_action(act); });
         tools_menu_->setMinimumSize(tools_menu_->sizeHint());
     }
-    tools_menu_->popup(at.toPoint());
+    tools_menu_->show_menu(at.toPoint());
 }
 
 auto main_window::make_action(const QString& txt,

@@ -45,7 +45,7 @@ private:
     QAction* act_;
     QRectF bounds_;
 };
-class radial_menu : public QMenu {
+class radial_menu : public QWidget {
     Q_OBJECT
     struct segment {
         QAction* act;
@@ -61,7 +61,7 @@ public:
     auto sizeHint() const -> QSize override;
 
 public slots:
-    void show_menu();
+    void show_menu(const QPointF& at);
     void hide_menu();
 
 protected:
@@ -69,11 +69,14 @@ protected:
 
 private:
     auto calc_segment_pos(int num) const -> QPointF;
-    void relayout() const;
+    auto bounds() const -> QRectF
+    {
+        return QRectF{QPointF{0, 0}, QSizeF{radius_ * 2, radius_ * 2}};
+    }
 
-    float radius_{0};
+    float radius_{70};
     QGraphicsScene scene_;
-    QGraphicsView* viewport_;
+    std::unique_ptr<QGraphicsView> viewport_;
     std::vector<radial_menu_segment*> parts_;
 };
 

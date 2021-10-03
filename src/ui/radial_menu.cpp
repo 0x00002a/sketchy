@@ -52,23 +52,14 @@ void radial_menu_segment::mousePressEvent(QGraphicsSceneMouseEvent* ev)
     }
 }
 
-radial_menu::radial_menu() : viewport_{new QGraphicsView{this}}
+radial_menu::radial_menu() : viewport_{std::make_unique<QGraphicsView>()}
 {
-    auto* layout = new QVBoxLayout{this};
-    layout->addWidget(viewport_);
-    QBrush b;
-    b.setColor(QColor{"#00000000"});
-    scene_.setBackgroundBrush(b);
-    viewport_->setBackgroundBrush(b);
-    setAutoFillBackground(false);
-
+    viewport_->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
+    viewport_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    viewport_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     viewport_->setScene(&scene_);
-    connect(this, &QMenu::aboutToShow, this, &radial_menu::show_menu);
-    connect(this, &QMenu::aboutToHide, this, &radial_menu::hide_menu);
-    connect(&scene_, &QGraphicsScene::sceneRectChanged, this,
-            [this](const QRectF& r) {
-                setMinimumSize(r.size().toSize() + QSize{40, 40});
-            });
+    viewport_->setAttribute(Qt::WA_TranslucentBackground);
+    viewport_->setStyleSheet(" QGraphicsView { background: transparent; } ");
 }
 
 auto radial_menu::sizeHint() const -> QSize
@@ -88,18 +79,23 @@ void radial_menu::add_action(QAction* act)
     scene_.addItem(seg);
     parts_.emplace_back(seg);
 }
-void radial_menu::relayout() const
+
+void radial_menu::show_menu(const QPointF& at)
 {
-    for (auto i = 0; i != parts_.size(); ++i) {
-        parts_.at(i)->setPos(calc_segment_pos(i));
-    }
-}
-void radial_menu::show_menu()
-{
-    const auto dims = min_rect(rect());
+    const auto dims = min_rect(bounds());
+    const auto center = bounds().center();
+    const auto sdims = scene_.sceneRect();
+    viewport_->setGeometry(QRect{QPointF{at.x() - sdims.size().width() / 2,
+                                         at.y() - sdims.size().height() / 2}
+                                     .toPoint(),
+                                 QSize{sdims.size().toSize()}});
+    viewport_->show();
+    viewport_->activateWindow();
     for (auto i = 0; i != parts_.size(); ++i) {
         auto* ani = new QPropertyAnimation{parts_.at(i), "pos", this};
-        ani->setStartValue(dims.center());
+        const auto start =
+            viewport_->mapToScene(viewport_->mapFromGlobal(at).toPoint());
+        ani->setStartValue(start);
         ani->setEndValue(calc_segment_pos(i));
         ani->setDuration(200);
         ani->start();
@@ -109,11 +105,9 @@ void radial_menu::hide_menu() {}
 
 auto radial_menu::calc_segment_pos(int num) const -> QPointF
 {
-    const auto dims = min_rect(rect());
-    QLineF baseline{dims.center(), dims.center() + QPointF{70, 0}};
-    const float per_seg = 360.0 / parts_.size();
-    baseline.setAngle(per_seg * num);
-    return baseline.p2();
+    const auto count = parts_.size();
+    return QPointF{radius_ * cos(num * 2 * M_PI / count - M_PI / 2),
+                   radius_ * sin(num * 2 * M_PI / count - M_PI / 2)};
 }
 
 void radial_menu::paintEvent(QPaintEvent* ev) {}
