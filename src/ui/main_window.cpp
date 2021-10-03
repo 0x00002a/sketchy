@@ -18,6 +18,7 @@
 #include "main_window.hpp"
 #include "canvas.hpp"
 #include "storage.hpp"
+#include "ui/radial_menu.hpp"
 
 #include <QHBoxLayout>
 #include <fstream>
@@ -51,6 +52,12 @@ main_window::main_window(logger_t logger)
 
     center_container_->addWidget(canvas_);
     center_container_->setCurrentWidget(canvas_);
+    auto* c = new radial_menu;
+    c->add_action(new QAction{tr("test1"), this});
+    c->add_action(new QAction{tr("test2"), this});
+    c->add_action(new QAction{tr("test3"), this});
+    center_container_->addWidget(c);
+    center_container_->setCurrentWidget(c);
 
     auto* tbar = addToolBar(tr("tools"));
 
