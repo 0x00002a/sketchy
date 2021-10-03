@@ -29,7 +29,7 @@ int main(int argc, char** argv)
 
     QApplication app{argc, argv};
 
-    ui::main_window win;
+    ui::main_window win{spdlog::default_logger()->clone("window")};
     win.show();
 
     return app.exec();

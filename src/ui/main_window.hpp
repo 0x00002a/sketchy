@@ -19,6 +19,8 @@
 
 #include <qmainwindow.h>
 
+#include "logger.hpp"
+
 class QStackedWidget;
 
 namespace sketchy::ui {
@@ -27,7 +29,7 @@ class canvas;
 class main_window : public QMainWindow {
     Q_OBJECT
 public:
-    main_window();
+    explicit main_window(logger_t logger);
 
 private slots:
     void switch_to_draw_mode();
@@ -39,6 +41,7 @@ private slots:
     void on_load_from_clicked();
 
 private:
+    logger_t logger_;
     QStackedWidget* center_container_;
     canvas* canvas_;
     QString save_path_;

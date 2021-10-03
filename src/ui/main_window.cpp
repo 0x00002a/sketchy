@@ -36,9 +36,10 @@
 #include <spdlog/spdlog.h>
 
 namespace sketchy::ui {
-main_window::main_window()
-    : center_container_{new QStackedWidget},
-      canvas_{new canvas{spdlog::default_logger()}}
+main_window::main_window(logger_t logger)
+    : logger_{std::move(logger)},
+      center_container_{new QStackedWidget},
+      canvas_{new canvas{logger_->clone("canvas")}}
 {
     auto* w = new QWidget;
     auto* layout = new QHBoxLayout{w};
@@ -128,12 +129,12 @@ void main_window::on_load_from_clicked()
 
 void main_window::switch_to_draw_mode()
 {
-    spdlog::debug("switch mode: draw");
+    logger_->debug("switch mode: draw");
     canvas_->curr_mode(canvas::mode::draw);
 }
 void main_window::switch_to_move_mode()
 {
-    spdlog::debug("switch mode: move");
+    logger_->debug("switch mode: move");
     canvas_->curr_mode(canvas::mode::move);
 }
 
