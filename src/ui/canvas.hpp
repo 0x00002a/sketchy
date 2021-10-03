@@ -53,6 +53,8 @@ protected:
     bool event(QEvent* e) override;
 signals:
     void on_pointer_event(QPointerEvent* ev) const;
+    void on_mouse_enter() const;
+    void on_mouse_leave() const;
 };
 class canvas : public QWidget {
     Q_OBJECT
@@ -81,6 +83,8 @@ public:
 
 private slots:
     void on_canvas_event(QPointerEvent* e);
+    void on_mouse_enter() const;
+    void on_mouse_leave() const;
 
 protected:
 private:
@@ -91,7 +95,7 @@ private:
     void handle_erase(const QPointF& at);
     auto eraser_bounds(const QPointF& center) const -> QPainterPath;
     auto eraser_cursor() const -> QCursor;
-    auto erasor_cursor_bitmap() const -> QBitmap;
+    auto erasor_cursor_bitmap() const -> QPixmap;
 
     void handle_pen_down(const QPointF& at);
     void handle_pen_up(const QPointF& at);

@@ -54,6 +54,10 @@ canvas::canvas(logger_t logger)
     (new QVBoxLayout{this})->addWidget(viewport_);
     connect(&scene_, &canvas_scene::on_pointer_event, this,
             &canvas::on_canvas_event);
+    connect(&scene_, &canvas_scene::on_mouse_enter, this,
+            &canvas::on_mouse_enter);
+    connect(&scene_, &canvas_scene::on_mouse_leave, this,
+            &canvas::on_mouse_leave);
     viewport_->setMouseTracking(true);
     viewport_->setTabletTracking(true);
 }
@@ -96,7 +100,6 @@ void canvas::handle_pen_up(const QPointF& at)
         }
         break;
     }
-    QApplication::setOverrideCursor(QCursor{});
     pen_down_ = false;
 }
 void canvas::handle_pen_move(const QPointF& at)
@@ -133,10 +136,10 @@ auto canvas::eraser_cursor() const -> QCursor
 {
     return QCursor{erasor_cursor_bitmap()};
 }
-auto canvas::erasor_cursor_bitmap() const -> QBitmap
+auto canvas::erasor_cursor_bitmap() const -> QPixmap
 {
     const auto size = QSizeF{curr_weight_ * 2, curr_weight_ * 2};
-    QBitmap img{size.toSize()};
+    QPixmap img{size.toSize()};
     fill_with_transparent(img);
     const auto path =
         eraser_bounds(QPointF(size.width() / 2, size.height() / 2));
@@ -157,6 +160,26 @@ auto canvas::eraser_bounds(const QPointF& center) const -> QPainterPath
     erase_circle.addEllipse(center, r, r);
     return erase_circle;
 }
+void canvas::on_mouse_enter() const
+{
+    switch (curr_mode_) {
+    case mode::draw:
+        QApplication::setOverrideCursor(QCursor{Qt::CursorShape::CrossCursor});
+        break;
+    case mode::move:
+        QApplication::setOverrideCursor(
+            QCursor{Qt::CursorShape::DragMoveCursor});
+        break;
+    case mode::erase:
+        QApplication::setOverrideCursor(eraser_cursor());
+        break;
+    }
+}
+void canvas::on_mouse_leave() const
+{
+    QApplication::setOverrideCursor(QCursor{});
+}
+
 void canvas::handle_erase(const QPointF& at)
 {
     logger_->trace("handle_erase()");
@@ -199,6 +222,13 @@ void canvas_view::mousePressEvent(QMouseEvent* e)
 
 bool canvas_scene::event(QEvent* e)
 {
+    if (e->type() == QEvent::Enter) {
+        emit on_mouse_enter();
+    }
+    else if (e->type() == QEvent::Leave) {
+        emit on_mouse_leave();
+    }
+
     if (e->isPointerEvent()) {
         auto* pe = static_cast<QPointerEvent*>(e);
         emit on_pointer_event(pe);
@@ -210,9 +240,7 @@ bool canvas_scene::event(QEvent* e)
 
 bool canvas_view::event(QEvent* e)
 {
-    if (e->isPointerEvent()) {
-        auto* pe = static_cast<QPointerEvent*>(e);
-
+    if (e->type() == QEvent::Leave || e->isPointerEvent()) {
         return QApplication::sendEvent(scene(), e);
     }
 

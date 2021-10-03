@@ -25,7 +25,7 @@ using namespace sketchy;
 
 int main(int argc, char** argv)
 {
-    spdlog::set_level(spdlog::level::trace);
+    spdlog::set_level(spdlog::level::debug);
 
     QApplication app{argc, argv};
 
