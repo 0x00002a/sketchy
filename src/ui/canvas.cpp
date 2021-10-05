@@ -196,6 +196,9 @@ void canvas::handle_erase(const QPointF& at)
             scene_.removeItem(item);
             delete item;
         });
+        constexpr auto margin = 25;
+        scene_.update(
+            area.boundingRect().adjusted(-margin, -margin, margin, margin));
         logger_->debug("erased {} items", to_remove.size());
     }
     else {
