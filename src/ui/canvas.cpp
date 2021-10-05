@@ -80,17 +80,14 @@ void canvas::handle_pen_down(const QPointF& at)
 {
     logger_->trace("handle_pen_down()");
     pen_down_ = true;
+    apply_custom_cursor();
     switch (curr_mode_) {
     case mode::draw:
-        QApplication::setOverrideCursor(QCursor{Qt::CursorShape::CrossCursor});
         prime_stroke(at);
         break;
     case mode::move:
-        QApplication::setOverrideCursor(
-            QCursor{Qt::CursorShape::DragMoveCursor});
         break;
     case mode::erase:
-        QApplication::setOverrideCursor(eraser_cursor());
         handle_erase(at);
         break;
     }
@@ -166,7 +163,9 @@ auto canvas::eraser_bounds(const QPointF& center) const -> QPainterPath
     erase_circle.addEllipse(center, r, r);
     return erase_circle;
 }
-void canvas::on_mouse_enter() const
+void canvas::on_mouse_enter() const { apply_custom_cursor(); }
+
+void canvas::apply_custom_cursor() const
 {
     switch (curr_mode_) {
     case mode::draw:

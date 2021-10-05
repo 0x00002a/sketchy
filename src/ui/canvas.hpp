@@ -93,6 +93,9 @@ private slots:
 
 protected:
 private:
+    void apply_custom_cursor() const;
+    void clear_custom_cursor() const;
+
     void add_stroke(const QPointF& at);
     void prime_stroke(const QPointF& at);
     void finish_stroke(const QPointF& at);
@@ -113,7 +116,7 @@ private:
     bool pen_down_{false};
     canvas_scene scene_;
     canvas_view* viewport_;
-    float curr_weight_{0};
     float weight_scaling_{10};
+    float curr_weight_{weight_scaling_};
 };
 } // namespace sketchy::ui
